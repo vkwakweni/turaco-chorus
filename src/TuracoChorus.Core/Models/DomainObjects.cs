@@ -24,6 +24,6 @@ public sealed record Answer(string Text, DataUsed DataUsed, bool ConsentVerified
 public sealed record AuditEntry(
     string UserId,
     string QueryText,
-    AggregateStats AggregatedDataSent,
+    AggregateStats? AggregatedDataSent,
     bool ConsentGranted,
     DateTimeOffset Timestamp);

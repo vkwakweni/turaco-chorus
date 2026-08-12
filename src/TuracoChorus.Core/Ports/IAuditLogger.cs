@@ -4,5 +4,5 @@ namespace TuracoChorus.Core.Ports;
 
 public interface IAuditLogger
 {
-    Task RecordAsync(AuditEntry entry);
+    Task RecordAuditEntryAsync(AuditEntry entry);
 }

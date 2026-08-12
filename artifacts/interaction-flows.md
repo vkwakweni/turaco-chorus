@@ -7,7 +7,7 @@ last-updated: 2026-08-12
 
 These are the call sequences through the interfaces defined in `domain-interfaces-and-objects.md`, one per endpoint. They exist so implementation has a fixed sequence to build against, not just a request/response shape.
 
-Every flow below starts with an **Auth** step: the inbound HTTP layer calls `IIdentityVerifier.VerifyAsync(rawCredential)` (see `domain-interfaces-and-objects.md`) before the Controller does anything else. The first adapter behind that port verifies the application's own Cognito JWT; a failed verification short-circuits with `401 Unauthorized` before any other port is called, in every flow below.
+Every flow below starts with an **Auth** step: the inbound HTTP layer calls `IIdentityVerifier.VerifyIdentityAsync(rawCredential)` (see `domain-interfaces-and-objects.md`) before the Controller does anything else. The first adapter behind that port verifies the application's own Cognito JWT; a failed verification short-circuits with `401 Unauthorized` before any other port is called, in every flow below.
 
 ## GET /stats
 
@@ -34,13 +34,13 @@ Consent gate happens before any `IInsightEngine` call — a denial short-circuit
   Client                  Auth                    Controller              IConsentStore           IInsightEngine          ILogDataSource          IAuditLogger
   │ POST /ask {question} (+ credential)           │                       │                       │                       │                       │
   ├───────────────────────>                       │                       │                       │                       │                       │
-  │                         VerifyAsync()         │                       │                       │                       │                       │
+  │                         VerifyIdentityAsync() │                       │                       │                       │                       │
   <── 401 [if invalid] ───┤                       │                       │                       │                       │                       │
   │                       ├───────────────────────>                       │                       │                       │                       │
-  │                       │                       ├───── GetAsync() ──────>                       │                       │                       │
+  │                       │                       ├── GetConsentAsync() ──>                       │                       │                       │
   │                       │                       <────── granted? ───────┤                       │                       │                       │
   │                       │                         [if not granted]      │                       │                       │                       │
-  │                       │                       ├─────────────────────────────────── RecordAsync() [denied] ────────────────────────────────────>
+  │                       │                       ├───────────────────────────── RecordAuditEntryAsync() [denied] ────────────────────────────────>
   <─────────────────────────────────────────────────────────────── 403 Forbidden ─────────────────────────────────────────────────────────────────┤
   │                       │                         [if granted]          │                       │                       │                       │
   │                       │                       ├──────────── ExtractRangeAsync() ──────────────>                       │                       │
@@ -49,22 +49,22 @@ Consent gate happens before any `IInsightEngine` call — a denial short-circuit
   │                       │                       <─────────────────────────── AggregateStats ────────────────────────────┤                       │
   │                       │                       ├───────────────── AskAsync() ──────────────────>                       │                       │
   │                       │                       <─────────────────── Answer ────────────────────┤                       │                       │
-  │                       │                       ├─────────────────────────────────────── RecordAsync() ─────────────────────────────────────────>
+  │                       │                       ├──────────────────────────────── RecordAuditEntryAsync() ─────────────────────────────────────>
   <─────────────────── 200 OK ────────────────────┤                       │                       │                       │                       │
 ```
 
 ## GET /consent, PUT /consent
 
-Returns or updates the caller's consent state via `IConsentStore` — `GetAsync` to read it, `SetAsync` to grant or revoke it. Revoking consent (`granted: false`) doesn't delete any prior `AuditEntry` records: audit history is append-only and survives revocation, per the Ethics-by-Design retention requirement (to be finalized in the EbD doc).
+Returns or updates the caller's consent state via `IConsentStore` — `GetConsentAsync` to read it, `SetConsentAsync` to grant or revoke it. Revoking consent (`granted: false`) doesn't delete any prior `AuditEntry` records: audit history is append-only and survives revocation, per the Ethics-by-Design retention requirement (to be finalized in the EbD doc).
 
 ```
   Client                  Auth                    Controller              IConsentStore
   │ GET/PUT /consent [,granted] (+ credential)    │                       │
   ├───────────────────────>                       │                       │
-  │                         VerifyAsync()         │                       │
+  │                         VerifyIdentityAsync() │                       │
   <── 401 [if invalid] ───┤                       │                       │
   │                       ├───────────────────────>                       │
-  │                       │                       ├─── Get/SetAsync() ────>
+  │                       │                       ├─ Get/SetConsentAsync() ─>
   │                       │                       <─── ConsentRecord ─────┤
   <─────────────────── 200 OK ────────────────────┤                       │
 ```

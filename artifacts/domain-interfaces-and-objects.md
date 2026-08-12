@@ -27,7 +27,7 @@ Each interface below follows the same structure: the question it answers, the in
 
 ```C#
 interface IIdentityVerifier
-    Task<string> VerifyAsync(string rawCredential)
+    Task<string> VerifyIdentityAsync(string rawCredential)
 ```
 
 **Returns:** the verified `userId` on success. Any failure (thrown exception, or however the adapter signals invalidity) is treated by the inbound layer as `401 Unauthorized`, before any other port is called.
@@ -40,8 +40,8 @@ interface IIdentityVerifier
 
 ```C#
 interface IConsentStore
-    Task<ConsentRecord> GetAsync(string userId)
-    Task<ConsentRecord> SetAsync(string userId, bool granted)
+    Task<ConsentRecord> GetConsentAsync(string userId)
+    Task<ConsentRecord> SetConsentAsync(string userId, bool granted)
 ```
 
 **Returns:** the caller's current or updated `ConsentRecord`. Knows nothing about what "user" means upstream — no assumption about which auth provider or account model is behind it; `userId` is an opaque string the caller supplies.
@@ -83,7 +83,7 @@ interface IInsightEngine
 
 ```C#
 interface IAuditLogger
-    Task RecordAsync(AuditEntry entry)
+    Task RecordAuditEntryAsync(AuditEntry entry)
 ```
 
 **Returns:** nothing — write-only. Called once per `/ask` request, regardless of outcome (including consent denials), per the Ethics-by-Design audit requirement.
