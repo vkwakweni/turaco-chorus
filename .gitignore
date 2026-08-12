@@ -1,0 +1,19 @@
+# .NET build output
+bin/
+obj/
+
+# .NET user-specific files
+*.user
+*.suo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# artifact development files
+artifacts/reference/

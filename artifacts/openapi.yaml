@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: Turaco Chorus API
+  version: "1.0"
+  description: >
+    Turaco Chorus is a companion .NET 8 service that can be connected to
+    upstream applications, letting users ask natural-language questions
+    about their data — answered by a connected AI provider's API, grounded
+    only in aggregated statistics, never raw entry text.
+
+
+    This is the source of truth for Turaco Chorus's HTTP contract — a
+    pre-development design artifact, written before any implementation
+    exists, not generated from code. The service is built to conform to
+    this spec, not the other way around.
+    
+    
+    See [api-contract.md](api-contract.md) for the prose explanation of how
+    each route maps to the domain ports in [domain-interfaces-and-objects.md](domain-interfaces-and-objects.md),
+    and [interaction-flows.md](interaction-flows.md) for the call sequence
+    behind each one.
+
+servers:
+  - url: /
+
+security:
+  - bearerAuth: []
+
+paths:
+  /stats:
+    get:
+      operationId: getStats
+      summary: Aggregated log stats for the authenticated caller
+      description: >
+        Returns aggregated statistics about the authenticated caller's own
+        data — counts, categories, and per-day totals over an optional date
+        range. Routes directly to ILogDataSource.GetStatsAsync, with
+        `from`/`to` passed through as nullable bounds (open-ended if either
+        is omitted). Requires authentication (see Authentication above) but
+        not consent — this endpoint is pure aggregation, and no data leaves
+        the service boundary.
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Aggregated stats for the requested range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AggregateStatsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /ask:
+    post:
+      operationId: ask
+      summary: Ask a natural-language question about the caller's own log data
+      description: >
+        Answers a natural-language question about the authenticated
+        caller's own data, using an AI provider grounded only in aggregated
+        stats — never raw entry text. IInsightEngine is called twice: once
+        to resolve a date range from the question text, once to produce the
+        answer from the resulting AggregateStats; every call is recorded
+        via IAuditLogger regardless of outcome. Requires authentication and
+        explicit consent — a denial returns 403 before any AI provider call
+        is made, including the range-extraction step.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskRequest"
+      responses:
+        "200":
+          description: The answer, with data provenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnswerResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Consent not granted; no AI provider call made
+        "422":
+          description: Question can't be answered from available aggregates
+
+  /consent:
+    get:
+      operationId: getConsent
+      summary: The authenticated caller's current consent state
+      description: >
+        Returns whether the authenticated caller has opted in to /ask, and
+        when. Routes directly to IConsentStore.GetAsync. Requires
+        authentication.
+      responses:
+        "200":
+          description: Current consent record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    put:
+      operationId: setConsent
+      summary: Grant or revoke consent for the authenticated caller
+      description: >
+        Grants or revokes the authenticated caller's consent to use /ask.
+        Routes directly to IConsentStore.SetAsync. Requires authentication.
+        Revoking consent takes effect immediately for future /ask calls; it
+        does not delete prior audit records (see ethics-by-design.md).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentRequest"
+      responses:
+        "200":
+          description: Updated consent record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Verified via IIdentityVerifier.VerifyAsync (domain-interfaces-and-objects.md). The
+        first adapter, CognitoIdentityVerifier, verifies the application's
+        own Cognito JWT. userId is always derived server-side from this
+        token — never accepted from the request — so no schema below
+        includes a userId field.
+
+  responses:
+    Unauthorized:
+      description: >
+        Authentication missing or invalid; returned before any other port
+        is called.
+
+  schemas:
+    DateRange:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+
+    AggregateStatsResponse:
+      type: object
+      required: [range, totalEntries, categories, entriesByDate]
+      properties:
+        range:
+          $ref: "#/components/schemas/DateRange"
+        totalEntries:
+          type: integer
+        categories:
+          type: array
+          items:
+            type: object
+            required: [name, count]
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+        entriesByDate:
+          type: array
+          items:
+            type: object
+            required: [date, count]
+            properties:
+              date:
+                type: string
+                format: date
+              count:
+                type: integer
+
+    AskRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+
+    AnswerResponse:
+      type: object
+      required: [answer, dataUsed, consentVerified]
+      properties:
+        answer:
+          type: string
+        dataUsed:
+          type: object
+          required: [statsQueried, range]
+          properties:
+            statsQueried:
+              type: array
+              items:
+                type: string
+            range:
+              $ref: "#/components/schemas/DateRange"
+        consentVerified:
+          type: boolean
+
+    ConsentResponse:
+      type: object
+      required: [granted]
+      properties:
+        granted:
+          type: boolean
+        grantedAt:
+          type: string
+          format: date
+          nullable: true
+
+    ConsentRequest:
+      type: object
+      required: [granted]
+      properties:
+        granted:
+          type: boolean
