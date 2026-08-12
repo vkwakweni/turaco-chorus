@@ -34,8 +34,8 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 
 ## Phase 2 — Core Domain & Application Logic
 
-- [ ] Finalize the five port interfaces (`IIdentityVerifier`, `IConsentStore`, `ILogDataSource`, `IInsightEngine`, `IAuditLogger`) as C# interfaces in the core/domain project, matching `domain-interfaces-and-objects.md`
-- [ ] Implement orchestration logic for all three endpoints per `interaction-flows.md`, depending only on port interfaces: `/stats` (auth → `GetStatsAsync`), `/ask` (auth → consent check → `ExtractRangeAsync` → `GetStatsAsync` → `AskAsync` → `RecordAsync`, including the 403+audit-denied branch), `/consent` (auth → `GetAsync`/`SetAsync`)
+- [x] Finalize the five port interfaces (`IIdentityVerifier`, `IConsentStore`, `ILogDataSource`, `IInsightEngine`, `IAuditLogger`) as C# interfaces in the core/domain project, matching `domain-interfaces-and-objects.md`
+- [x] Implement orchestration logic for all three endpoints per `interaction-flows.md`, depending only on port interfaces: `/stats` (auth → `GetStatsAsync`), `/ask` (auth → consent check → `ExtractRangeAsync` → `GetStatsAsync` → `AskAsync` → `RecordAuditEntryAsync`, including the 403+audit-denied branch), `/consent` (auth → `GetConsentAsync`/`SetConsentAsync`)
 - [ ] Write fake/in-memory test doubles for all five ports
 - [ ] Unit test each orchestration flow against the fakes: happy paths, the consent-denied path, the no-raw-text-to-`IInsightEngine` guarantee, the audit-entry-written-on-every-`/ask`-call guarantee
 - [ ] Wire orchestration + fakes behind DI so all three endpoints run end-to-end against fakes, no AWS/Claude credentials required yet
