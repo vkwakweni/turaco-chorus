@@ -40,6 +40,22 @@ The core depends only on interfaces it defines itself ("ports"); every concrete 
 - [`infra/`](infra/) — AWS CDK (TypeScript): `TuracoChorusStack`, deploying the service to ECS Fargate
 - [`artifacts/`](artifacts/) — design docs (see above)
 
+## Local development setup
+
+Running the service locally against the Phase 2 fakes requires two [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) values — a demo bearer token and the `userId` it resolves to — so `/stats` etc. can be exercised with `curl` without any real Cognito credential. These are never committed to source control; `dotnet user-secrets` stores them in a file outside the repo entirely. Run once, from `src/TuracoChorus/`:
+
+```bash
+dotnet user-secrets init
+dotnet user-secrets set "DevSeedData:Token" "<any value>"
+dotnet user-secrets set "DevSeedData:UserId" "<any value>"
+```
+
+This only takes effect in `Debug` builds (see `DevSeedData.cs`) — it's compiled out of `Release` builds entirely, so it can never reach a real deployment. Then:
+
+```bash
+curl -H "Authorization: Bearer <the token you set above>" http://localhost:5006/stats
+```
+
 ## Status
 
 Phase 1 (requirements & design) complete. Phase 2 (core domain & application logic) not yet started — see `roadmap.md`.

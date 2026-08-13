@@ -17,3 +17,6 @@ Thumbs.db
 
 # artifact development files
 artifacts/reference/
+
+# local-dev-only scripts
+scripts/
