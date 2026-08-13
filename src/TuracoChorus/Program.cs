@@ -46,8 +46,8 @@ app.MapGet("/stats", async (
     IIdentityVerifier identityVerifier,
     StatsOrchestrator orchestrator) =>
 {
-    var userId = await BearerAuth.AuthenticateAsync(request, identityVerifier);
-    if (userId is null)
+    var auth = await BearerAuth.AuthenticateAsync(request, identityVerifier);
+    if (auth is not AuthSucceeded { UserId: var userId })
     {
         return Results.Unauthorized();
     }
@@ -67,8 +67,8 @@ app.MapPost("/ask", async (
     IIdentityVerifier identityVerifier,
     AskOrchestrator orchestrator) =>
 {
-    var userId = await BearerAuth.AuthenticateAsync(request, identityVerifier);
-    if (userId is null)
+    var auth = await BearerAuth.AuthenticateAsync(request, identityVerifier);
+    if (auth is not AuthSucceeded { UserId: var userId })
     {
         return Results.Unauthorized();
     }
@@ -92,8 +92,8 @@ app.MapGet("/consent", async (
     IIdentityVerifier identityVerifier,
     ConsentOrchestrator orchestrator) =>
 {
-    var userId = await BearerAuth.AuthenticateAsync(request, identityVerifier);
-    if (userId is null)
+    var auth = await BearerAuth.AuthenticateAsync(request, identityVerifier);
+    if (auth is not AuthSucceeded { UserId: var userId })
     {
         return Results.Unauthorized();
     }
@@ -109,8 +109,8 @@ app.MapPut("/consent", async (
     IIdentityVerifier identityVerifier,
     ConsentOrchestrator orchestrator) =>
 {
-    var userId = await BearerAuth.AuthenticateAsync(request, identityVerifier);
-    if (userId is null)
+    var auth = await BearerAuth.AuthenticateAsync(request, identityVerifier);
+    if (auth is not AuthSucceeded { UserId: var userId })
     {
         return Results.Unauthorized();
     }
