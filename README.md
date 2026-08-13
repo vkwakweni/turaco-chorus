@@ -58,5 +58,5 @@ curl -H "Authorization: Bearer <the token you set above>" http://localhost:5006/
 
 ## Status
 
-Phase 1 (requirements & design) complete. Phase 2 (core domain & application logic) not yet started — see `roadmap.md`.
+Phase 1 (requirements & design) and Phase 2 (core domain & application logic) complete. Phase 3 (adapters, integration & Ethics-by-Design enforcement) not yet started — see `roadmap.md`.
 

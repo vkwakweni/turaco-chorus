@@ -1,6 +1,6 @@
 ---
 title: Technology Glossary
-last-updated: 2026-08-11
+last-updated: 2026-08-13
 ---
 
 # Tech Stack

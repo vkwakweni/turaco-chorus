@@ -1,6 +1,6 @@
 ---
 title: Domain Interfaces and Objects
-last-updated: 2026-08-12
+last-updated: 2026-08-13
 ---
 
 # Domain Interfaces and Objects

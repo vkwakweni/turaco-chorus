@@ -1,6 +1,6 @@
 ---
 title: Development Phases
-last-updated: 2026-08-12
+last-updated: 2026-08-13
 ---
 
 # Development Phases
@@ -38,7 +38,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - [x] Implement orchestration logic for all three endpoints per `interaction-flows.md`, depending only on port interfaces: `/stats` (auth → `GetStatsAsync`), `/ask` (auth → consent check → `ExtractRangeAsync` → `GetStatsAsync` → `AskAsync` → `RecordAuditEntryAsync`, including the 403+audit-denied branch), `/consent` (auth → `GetConsentAsync`/`SetConsentAsync`)
 - [x] Write fake/in-memory test doubles for all five ports
 - [x] Unit test each orchestration flow against the fakes: happy paths, the consent-denied path, the no-raw-text-to-`IInsightEngine` guarantee, the audit-entry-written-on-every-`/ask`-call guarantee
-- [ ] Wire orchestration + fakes behind DI so all three endpoints run end-to-end against fakes, no AWS/Claude credentials required yet
+- [x] Wire orchestration + fakes behind DI so all three endpoints run end-to-end against fakes, no AWS/Claude credentials required yet
 
 ## Phase 3 — Adapters, Integration & Ethics-by-Design Enforcement
 

@@ -1,6 +1,6 @@
 ---
 title: API Contract
-last-updated: 2026-08-12
+last-updated: 2026-08-13
 ---
 
 # API Contract

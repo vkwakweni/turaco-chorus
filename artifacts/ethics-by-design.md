@@ -1,6 +1,6 @@
 ---
 title: Ethics by Design
-last-updated: 2026-08-11
+last-updated: 2026-08-13
 ---
 
 # Ethics by Design
