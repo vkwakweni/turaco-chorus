@@ -33,7 +33,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 #if DEBUG
-    app.UseDevelopmentSeedData();
+    await app.UseDevelopmentSeedDataAsync();
 #endif
 }
 
@@ -59,6 +59,65 @@ app.MapGet("/stats", async (
         stats.TotalEntries,
         stats.Categories.Select(c => new CategoryCountResponse(c.Name, c.Count)).ToList(),
         stats.EntriesByDate.Select(d => new DateCountResponse(d.Date, d.Count)).ToList()));
+});
+
+app.MapPost("/ask", async (
+    HttpRequest request,
+    AskRequest body,
+    IIdentityVerifier identityVerifier,
+    AskOrchestrator orchestrator) =>
+{
+    var userId = await BearerAuth.AuthenticateAsync(request, identityVerifier);
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await orchestrator.AskAsync(userId, body.Question);
+
+    return result switch
+    {
+        AskAllowed allowed => Results.Ok(new AnswerResponse(
+            allowed.Answer.Text,
+            new DataUsedResponse(
+                allowed.Answer.DataUsed.StatsQueried,
+                new DateRangeResponse(allowed.Answer.DataUsed.Range.From, allowed.Answer.DataUsed.Range.To)))),
+        AskDenied => Results.StatusCode(StatusCodes.Status403Forbidden),
+        _ => Results.Problem("Unexpected AskResult type.")
+    };
+});
+
+app.MapGet("/consent", async (
+    HttpRequest request,
+    IIdentityVerifier identityVerifier,
+    ConsentOrchestrator orchestrator) =>
+{
+    var userId = await BearerAuth.AuthenticateAsync(request, identityVerifier);
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var consent = await orchestrator.GetConsentAsync(userId);
+
+    return Results.Ok(new ConsentResponse(consent.Granted, consent.GrantedAt));
+});
+
+app.MapPut("/consent", async (
+    HttpRequest request,
+    ConsentRequest body,
+    IIdentityVerifier identityVerifier,
+    ConsentOrchestrator orchestrator) =>
+{
+    var userId = await BearerAuth.AuthenticateAsync(request, identityVerifier);
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var consent = await orchestrator.SetConsentAsync(userId, body.Granted);
+
+    return Results.Ok(new ConsentResponse(consent.Granted, consent.GrantedAt));
 });
 
 app.Run();

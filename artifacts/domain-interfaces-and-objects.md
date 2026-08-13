@@ -128,3 +128,5 @@ AuditEntry
 ```
 
 `AggregateStats.sourceId` is deliberately named `sourceId`, not `userId` — it identifies whatever the data source's own concept of "owner" is, which the `ILogDataSource` adapter resolves from the `userId` `/stats` and `/ask` receive. The domain doesn't assume those two ids are always the same value; resolving one from the other, if needed at all, is the adapter's job.
+
+**Known gap, deferred:** `ConsentRecord.GrantedAt` is currently only set when `granted` is `true` — so it's `null` both for "never made a consent decision" and for "explicitly revoked." Those are meaningfully different facts (accountability requires distinguishing them), currently indistinguishable. The intended fix — populate `GrantedAt` on every status change, not just on grant, so it reads as "date of the last decision" and `null` means only "never decided" — is noted in `roadmap.md`'s Later section rather than implemented now.

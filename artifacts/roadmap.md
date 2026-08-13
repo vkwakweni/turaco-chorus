@@ -69,3 +69,4 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 
 - Frontend integration: surface the NL query box inside Logger's World's UI, calling this service's `/ask` endpoint directly
 - Replace the ASCII diagrams in `README.md` and `interaction-flows.md` with `.drawio` files, matching Logger's World's `architecture.drawio` convention — not required for the current design-doc pass
+- `ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false` — meaning an explicit revocation and "never made a consent decision at all" are currently indistinguishable (both show `Granted: false, GrantedAt: null`). Consider populating the same field on every status change, granted or revoked, rather than only on grant — so it reads as "date of the last decision," and revoked-on-this-date is distinguishable from never-decided
