@@ -60,7 +60,7 @@ The following document describes a translation of EbD's abstract tracts into imp
 **Assessment:** Not violated — provided the requirements below are followed (contingent on the audit-log schema — the next roadmap item — actually implementing what's described here).
 
 **Design requirements:**
-- `IAuditLogger.RecordAsync` is called once per `/ask` request, regardless of outcome — including consent denials — so there is a complete record of every attempt to use the AI feature, not just successful ones (`domain-interfaces-and-objects.md`, `interaction-flows.md`).
+- `IAuditLogger.RecordAuditEntryAsync` is called once per `/ask` request, regardless of outcome — including consent denials — so there is a complete record of every attempt to use the AI feature, not just successful ones (`domain-interfaces-and-objects.md`, `interaction-flows.md`).
 - Audit records are append-only and survive consent revocation (see Privacy, above) — human oversight requires the historical record to be tamper-resistant, not editable after the fact.
 - The audit log must be human-readable, not just machine-parseable, so a human reviewer (not just another system) can audit what happened — this is a concrete constraint on the schema design in the next roadmap item.
 - No component in this system is unowned: `ILogDataSource`, `IInsightEngine`, `IConsentStore`, and `IAuditLogger` are each a single, well-defined port with a single adapter responsible for it — accountability for a failure in any one of them traces to exactly one place.

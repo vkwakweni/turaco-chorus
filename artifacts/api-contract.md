@@ -9,7 +9,7 @@ The wire-level (HTTP) contract lives in [`openapi.yaml`](openapi.yaml) — the s
 
 This doc covers what OpenAPI can't express: how each route maps onto the domain ports defined in `domain-interfaces-and-objects.md`. See `interaction-flows.md` for the full call sequence behind each one.
 
-**Authentication:** every route requires it — the Auth step ahead of the Controller in every `interaction-flows.md` flow, which calls `IIdentityVerifier.VerifyAsync` (see `domain-interfaces-and-objects.md`). `userId` is always derived server-side from the verified credential, never accepted from the request — so no schema in `openapi.yaml` includes a `userId` field, on either the request or response side.
+**Authentication:** every route requires it — the Auth step ahead of the Controller in every `interaction-flows.md` flow, which calls `IIdentityVerifier.VerifyIdentityAsync` (see `domain-interfaces-and-objects.md`). `userId` is always derived server-side from the verified credential, never accepted from the request — so no schema in `openapi.yaml` includes a `userId` field, on either the request or response side.
 
 **Consent scope decision:** `/stats` does not require consent (pure aggregation, no data leaves the service boundary); `/ask` requires consent, since that's the only endpoint where data is sent to the AI provider.
 
@@ -23,8 +23,8 @@ Answers a natural-language question about the authenticated caller's own data, u
 
 ## GET /consent
 
-Returns whether the authenticated caller has opted in to `/ask`, and when. Routes directly to `IConsentStore.GetAsync`, called with the `userId` derived from the verified credential. Requires authentication.
+Returns whether the authenticated caller has opted in to `/ask`, and when. Routes directly to `IConsentStore.GetConsentAsync`, called with the `userId` derived from the verified credential. Requires authentication.
 
 ## PUT /consent
 
-Grants or revokes the authenticated caller's consent to use `/ask`. Routes directly to `IConsentStore.SetAsync`, called with the `userId` derived from the verified credential. Requires authentication. Revoking consent takes effect immediately for future `/ask` calls; it does not delete prior audit records (see `ethics-by-design.md`).
+Grants or revokes the authenticated caller's consent to use `/ask`. Routes directly to `IConsentStore.SetConsentAsync`, called with the `userId` derived from the verified credential. Requires authentication. Revoking consent takes effect immediately for future `/ask` calls; it does not delete prior audit records (see `ethics-by-design.md`).

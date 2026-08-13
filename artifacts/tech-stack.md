@@ -18,6 +18,7 @@ Split in two, to keep what's core clearly separate from what's an adapter — sa
 | Infrastructure as Code | AWS CDK (TypeScript) | Own stack: ECS service, IAM role; audit/consent storage added once Phase 3 picks their adapters |
 | CI/CD | GitHub Actions | Build → test → Docker build → push → deploy |
 | Source control | GitHub | Own repo, own pipeline, own deploy cadence |
+| Testing framework | xUnit | Orchestration unit tests run against hand-written in-memory fakes per port, not a mocking library — see glossary |
 
 ## Adapters
 
@@ -43,3 +44,4 @@ One row per port defined in `domain-interfaces-and-objects.md`. `IConsentStore` 
 * **Docker**: Containerises the .NET service for consistent build/deploy across CI and ECS.
 * **GitHub Actions**: CI/CD runner — lints, tests, builds the Docker image, pushes it, and triggers the ECS deploy.
 * **.NET 8 Web API**: The service itself — exposes `/stats`, `/ask`, and `/consent` endpoints.
+* **xUnit**: .NET test framework used for orchestration unit tests, run against hand-written in-memory fakes per port rather than a mocking library — fakes hold real state, closer to how the ports actually behave.

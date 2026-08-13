@@ -117,8 +117,7 @@ ConsentRecord
 
 Answer
 ├── text: string
-├── dataUsed: { statsQueried: string[], range: DateRange }
-└── consentVerified: bool
+└── dataUsed: { statsQueried: string[], range: DateRange }
 
 AuditEntry
 ├── userId: string
