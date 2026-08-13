@@ -19,7 +19,7 @@ public sealed record ConsentRecord(string UserId, bool Granted, DateOnly? Grante
 
 public sealed record DataUsed(IReadOnlyList<string> StatsQueried, DateRange Range);
 
-public sealed record Answer(string Text, DataUsed DataUsed, bool ConsentVerified);
+public sealed record Answer(string Text, DataUsed DataUsed);
 
 public sealed record AuditEntry(
     string UserId,
