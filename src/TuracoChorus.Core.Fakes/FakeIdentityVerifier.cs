@@ -1,6 +1,6 @@
 using TuracoChorus.Core.Ports;
 
-namespace TuracoChorus.Core.Tests.Fakes;
+namespace TuracoChorus.Core.Fakes;
 
 public sealed class FakeIdentityVerifier : IIdentityVerifier
 {

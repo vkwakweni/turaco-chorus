@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Core", "src\Tu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Core.Tests", "src\TuracoChorus.Core.Tests\TuracoChorus.Core.Tests.csproj", "{A768E52E-0F33-48D2-99DF-EF5589CC4F2E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Core.Fakes", "src\TuracoChorus.Core.Fakes\TuracoChorus.Core.Fakes.csproj", "{989BEF59-AC86-4169-9E7F-691D7599FFF6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,10 +34,15 @@ Global
 		{A768E52E-0F33-48D2-99DF-EF5589CC4F2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A768E52E-0F33-48D2-99DF-EF5589CC4F2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A768E52E-0F33-48D2-99DF-EF5589CC4F2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{989BEF59-AC86-4169-9E7F-691D7599FFF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{989BEF59-AC86-4169-9E7F-691D7599FFF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{989BEF59-AC86-4169-9E7F-691D7599FFF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{989BEF59-AC86-4169-9E7F-691D7599FFF6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{6D7BD567-53F7-4A79-A88A-A2717F034EA2} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{01EDBA46-3F1C-46CF-B69D-517AEB66200D} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{A768E52E-0F33-48D2-99DF-EF5589CC4F2E} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{989BEF59-AC86-4169-9E7F-691D7599FFF6} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 	EndGlobalSection
 EndGlobal

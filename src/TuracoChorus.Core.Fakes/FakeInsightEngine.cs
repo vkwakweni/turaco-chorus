@@ -1,7 +1,7 @@
 using TuracoChorus.Core.Models;
 using TuracoChorus.Core.Ports;
 
-namespace TuracoChorus.Core.Tests.Fakes;
+namespace TuracoChorus.Core.Fakes;
 
 public sealed class FakeInsightEngine : IInsightEngine
 {

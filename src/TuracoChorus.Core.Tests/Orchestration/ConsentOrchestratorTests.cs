@@ -1,5 +1,5 @@
 using TuracoChorus.Core.Orchestration;
-using TuracoChorus.Core.Tests.Fakes;
+using TuracoChorus.Core.Fakes;
 using Xunit;
 
 namespace TuracoChorus.Core.Tests.Orchestration;

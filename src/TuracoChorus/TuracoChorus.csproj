@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TuracoChorus.Core\TuracoChorus.Core.csproj" />
+    <ProjectReference Include="..\TuracoChorus.Core.Fakes\TuracoChorus.Core.Fakes.csproj" />
   </ItemGroup>
 
 </Project>
