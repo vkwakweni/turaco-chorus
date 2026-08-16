@@ -19,7 +19,7 @@ Returns aggregated statistics about the authenticated caller's own data — coun
 
 ## POST /ask
 
-Answers a natural-language question about the authenticated caller's own data, using an AI provider grounded only in aggregated stats — never raw entry text. `IConsentStore` is checked first; on denial, returns 403 without calling `ILogDataSource` or `IInsightEngine` at all — including the range-extraction step (see `interaction-flows.md`). On success, `IInsightEngine` is called twice: first with just the question text, to resolve a `RequestedRange`; then, once `ILogDataSource` has returned `AggregateStats` for that range, a second time with only that `AggregateStats` to produce the answer. Writes an `AuditEntry` via `IAuditLogger` regardless of outcome. Requires authentication and explicit consent.
+Answers a natural-language question about the authenticated caller's own data, using an AI provider grounded only in aggregated stats — never raw entry text. `IConsentStore` is checked first; on denial, returns 403 without calling `ILogDataSource` or `IInsightEngine` at all — including the range-extraction step (see `interaction-flows.md`). On success, `IInsightEngine` is called twice: first with just the question text, to resolve a `RequestedRange`; then, once `ILogDataSource` has returned `AggregateStats` for that range, a second time with that `AggregateStats` and the original question to produce the answer. Writes an `AuditEntry` via `IAuditLogger` regardless of outcome. Requires authentication and explicit consent.
 
 ## GET /consent
 

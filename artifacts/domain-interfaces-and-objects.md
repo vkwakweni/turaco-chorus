@@ -122,9 +122,9 @@ Answer
 AuditEntry
 ├── userId: string
 ├── queryText: string
-├── aggregatedDataSent: AggregateStats
+├── aggregatedDataSent: AggregateStats | null
 ├── consentGranted: bool
-└── timestamp: date
+└── timestamp: datetime
 ```
 
 `AggregateStats.sourceId` is deliberately named `sourceId`, not `userId` — it identifies whatever the data source's own concept of "owner" is, which the `ILogDataSource` adapter resolves from the `userId` `/stats` and `/ask` receive. The domain doesn't assume those two ids are always the same value; resolving one from the other, if needed at all, is the adapter's job.
