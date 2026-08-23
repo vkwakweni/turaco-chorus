@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Core.Fakes", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Tests", "src\TuracoChorus.Tests\TuracoChorus.Tests.csproj", "{C8A7FB0E-E0E8-40B8-A29E-EBF8343B5EE3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Cognito", "src\TuracoChorus.Adapters.Cognito\TuracoChorus.Adapters.Cognito.csproj", "{76FEF092-DE46-4B9E-BBF6-D7D878D4B914}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Cognito.Tests", "src\TuracoChorus.Adapters.Cognito.Tests\TuracoChorus.Adapters.Cognito.Tests.csproj", "{AE9BE1E7-D0BE-4E89-B672-EBCFBB3A8BFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +48,14 @@ Global
 		{C8A7FB0E-E0E8-40B8-A29E-EBF8343B5EE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8A7FB0E-E0E8-40B8-A29E-EBF8343B5EE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8A7FB0E-E0E8-40B8-A29E-EBF8343B5EE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76FEF092-DE46-4B9E-BBF6-D7D878D4B914}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76FEF092-DE46-4B9E-BBF6-D7D878D4B914}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76FEF092-DE46-4B9E-BBF6-D7D878D4B914}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76FEF092-DE46-4B9E-BBF6-D7D878D4B914}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE9BE1E7-D0BE-4E89-B672-EBCFBB3A8BFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE9BE1E7-D0BE-4E89-B672-EBCFBB3A8BFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE9BE1E7-D0BE-4E89-B672-EBCFBB3A8BFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE9BE1E7-D0BE-4E89-B672-EBCFBB3A8BFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{6D7BD567-53F7-4A79-A88A-A2717F034EA2} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
@@ -51,5 +63,7 @@ Global
 		{A768E52E-0F33-48D2-99DF-EF5589CC4F2E} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{989BEF59-AC86-4169-9E7F-691D7599FFF6} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{C8A7FB0E-E0E8-40B8-A29E-EBF8343B5EE3} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{76FEF092-DE46-4B9E-BBF6-D7D878D4B914} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{AE9BE1E7-D0BE-4E89-B672-EBCFBB3A8BFF} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 	EndGlobalSection
 EndGlobal
