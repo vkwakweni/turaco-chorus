@@ -62,7 +62,7 @@ interface ILogDataSource
 
 **Returns:** `AggregateStats` — never raw entry text, a constraint enforced by the return type itself (it has no field capable of holding it), not by a runtime check. `from`/`to` are nullable — a null bound means open-ended ("earliest available" / "latest"), resolved however the adapter sees fit — but whatever it resolves to, `AggregateStats.range` always comes back concrete, never null.
 
-**Adapters:** `DynamoDbLogDataSource` (planned) — reads the upstream service's DynamoDB table, read-only, mapping its own item shapes into `AggregateStats`. The `sourceId` parameter is named from the adapter's perspective, not the caller's: the caller supplies its own `userId`, and translating that into whatever id the data source actually keys on — if needed at all — is the adapter's job.
+**Adapters:** `DynamoDbLogDataSource` (planned) — reads the upstream service's DynamoDB table, read-only, mapping its own item shapes into `AggregateStats`. Built generic, not hardcoded to one installer: the item-shape mapping (key structure, date attribute, dimension resolution) is supplied as configuration per deployment — see `dynamodb-adapter.md`. The `sourceId` parameter is named from the adapter's perspective, not the caller's: the caller supplies its own `userId`, and translating that into whatever id the data source actually keys on — if needed at all — is the adapter's job.
 
 ### `IInsightEngine` — the AI side
 
