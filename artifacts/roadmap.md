@@ -44,7 +44,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 
 - [x] Decide storage/adapter approach for `IConsentStore` and `IAuditLogger` (deferred from Phase 1); design the audit-log schema now that storage is chosen
 - [x] Design `DynamoDbLogDataSource`'s read access (deferred from Phase 1): IAM role with least-privilege read-only policy scoped to Logger's World's table, plus the CDK cross-stack export/SSM parameter for the table name
-- [ ] Design `CognitoIdentityVerifier`'s configuration (deferred from Phase 1): which Cognito user pool it verifies against, and how the .NET service validates JWTs against Cognito's JWKS endpoint
+- [x] Design `CognitoIdentityVerifier`'s configuration (deferred from Phase 1): which Cognito user pool it verifies against, and how the .NET service validates JWTs against Cognito's JWKS endpoint
 - [ ] Implement `CognitoIdentityVerifier`, `DynamoDbLogDataSource`, and the Claude adapter for `IInsightEngine` (`ExtractRangeAsync` + `AskAsync`, both carrying the fixed system prompt) — each as its own class library project (`TuracoChorus.Adapters.Cognito`, `TuracoChorus.Adapters.DynamoDb`, `TuracoChorus.Adapters.Claude`), referencing `TuracoChorus.Core` only, added to the solution as needed rather than scaffolded upfront
 - [ ] Implement the chosen `IConsentStore` and `IAuditLogger` adapters, same one-project-per-adapter structure
 - [ ] Swap DI registrations from fakes to real adapters — Phase 2's orchestration unit tests must pass unchanged, proving the core logic didn't need to change; add adapter-level integration tests (real Cognito verification, real DynamoDB read, real Claude call)
