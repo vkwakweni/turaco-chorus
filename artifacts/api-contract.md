@@ -15,7 +15,7 @@ This doc covers what OpenAPI can't express: how each route maps onto the domain 
 
 ## GET /stats
 
-Returns aggregated statistics about the authenticated caller's own data — counts, categories, and per-day totals over an optional date range. Routes directly to `ILogDataSource.GetStatsAsync`, called with the `userId` derived from the verified credential; `AggregateStats.sourceId` is dropped when serializing the response, not echoed back as `userId` either — the caller already knows its own identity from its credential, so the response carries only the data it asked for. Requires authentication, not consent.
+Returns aggregated statistics about the authenticated caller's own data — a total count plus an installer-defined list of dimensions, each broken into named buckets with counts, over an optional date range. Routes directly to `ILogDataSource.GetStatsAsync`, called with the `userId` derived from the verified credential; `AggregateStats.sourceId` is dropped when serializing the response, not echoed back as `userId` either — the caller already knows its own identity from its credential, so the response carries only the data it asked for. Requires authentication, not consent.
 
 ## POST /ask
 

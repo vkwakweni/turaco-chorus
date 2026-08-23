@@ -11,8 +11,11 @@ public sealed class AskOrchestratorTests
         SourceId: sourceId,
         Range: new DateRange(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31)),
         TotalEntries: 3,
-        Categories: [new CategoryCount("mood", 3)],
-        EntriesByDate: [new DateCount(new DateOnly(2026, 1, 10), 3)]);
+        Dimensions:
+        [
+            new Dimension("category", [new DimensionBucket("mood", 3)]),
+            new Dimension("date", [new DimensionBucket("2026-01-10", 3)])
+        ]);
 
     [Fact]
     public async Task AskAsync_WhenConsentGranted_ReturnsTheAnswerFromInsightEngine()

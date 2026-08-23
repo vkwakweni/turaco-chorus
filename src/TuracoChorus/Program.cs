@@ -57,8 +57,11 @@ app.MapGet("/stats", async (
     return Results.Ok(new AggregateStatsResponse(
         new DateRangeResponse(stats.Range.From, stats.Range.To),
         stats.TotalEntries,
-        stats.Categories.Select(c => new CategoryCountResponse(c.Name, c.Count)).ToList(),
-        stats.EntriesByDate.Select(d => new DateCountResponse(d.Date, d.Count)).ToList()));
+        stats.Dimensions
+            .Select(d => new DimensionResponse(
+                d.Name,
+                d.Buckets.Select(b => new DimensionBucketResponse(b.Value, b.Count)).ToList()))
+            .ToList()));
 });
 
 app.MapPost("/ask", async (

@@ -33,7 +33,8 @@ paths:
       summary: Aggregated log stats for the authenticated caller
       description: >
         Returns aggregated statistics about the authenticated caller's own
-        data — counts, categories, and per-day totals over an optional date
+        data — a total count plus an installer-defined list of dimensions,
+        each broken into named buckets with counts, over an optional date
         range. Routes directly to ILogDataSource.GetStatsAsync, with
         `from`/`to` passed through as nullable bounds (open-ended if either
         is omitted). Requires authentication (see Authentication above) but
@@ -169,33 +170,30 @@ components:
 
     AggregateStatsResponse:
       type: object
-      required: [range, totalEntries, categories, entriesByDate]
+      required: [range, totalEntries, dimensions]
       properties:
         range:
           $ref: "#/components/schemas/DateRange"
         totalEntries:
           type: integer
-        categories:
+        dimensions:
           type: array
           items:
             type: object
-            required: [name, count]
+            required: [name, buckets]
             properties:
               name:
                 type: string
-              count:
-                type: integer
-        entriesByDate:
-          type: array
-          items:
-            type: object
-            required: [date, count]
-            properties:
-              date:
-                type: string
-                format: date
-              count:
-                type: integer
+              buckets:
+                type: array
+                items:
+                  type: object
+                  required: [value, count]
+                  properties:
+                    value:
+                      type: string
+                    count:
+                      type: integer
 
     AskRequest:
       type: object

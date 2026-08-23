@@ -15,8 +15,11 @@ public sealed class StatsOrchestratorTests
             SourceId: "user-1",
             Range: new DateRange(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31)),
             TotalEntries: 5,
-            Categories: [new CategoryCount("mood", 5)],
-            EntriesByDate: [new DateCount(new DateOnly(2026, 1, 15), 5)]);
+            Dimensions:
+            [
+                new Dimension("category", [new DimensionBucket("mood", 5)]),
+                new Dimension("date", [new DimensionBucket("2026-01-15", 5)])
+            ]);
         logDataSource.Seed("user-1", expectedStats);
         var orchestrator = new StatsOrchestrator(logDataSource);
 
@@ -39,14 +42,20 @@ public sealed class StatsOrchestratorTests
             SourceId: "user-1",
             Range: new DateRange(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31)),
             TotalEntries: 5,
-            Categories: [new CategoryCount("mood", 5)],
-            EntriesByDate: [new DateCount(new DateOnly(2026, 1, 15), 5)]);
+            Dimensions:
+            [
+                new Dimension("category", [new DimensionBucket("mood", 5)]),
+                new Dimension("date", [new DimensionBucket("2026-01-15", 5)])
+            ]);
         var statsForUser2 = new AggregateStats(
             SourceId: "user-2",
             Range: new DateRange(new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31)),
             TotalEntries: 1,
-            Categories: [new CategoryCount("sleep", 1)],
-            EntriesByDate: [new DateCount(new DateOnly(2026, 1, 20), 1)]);
+            Dimensions:
+            [
+                new Dimension("category", [new DimensionBucket("sleep", 1)]),
+                new Dimension("date", [new DimensionBucket("2026-01-20", 1)])
+            ]);
         logDataSource.Seed("user-1", statsForUser1);
         logDataSource.Seed("user-2", statsForUser2);
         var orchestrator = new StatsOrchestrator(logDataSource);
