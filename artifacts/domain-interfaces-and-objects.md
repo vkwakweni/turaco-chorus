@@ -35,7 +35,7 @@ interface IIdentityVerifier
 
 **Returns:** the verified `userId` on success. Any failure (thrown exception, or however the adapter signals invalidity) is treated by the inbound layer as `401 Unauthorized`, before any other port is called.
 
-**Adapters:** `CognitoIdentityVerifier` (planned) — verifies the caller's Cognito JWT against the application's own Cognito user pool, returns the token's `sub` claim as `userId`. Deliberate near-term coupling: the interface stays generic (a raw credential string in, a verified `userId` out), but this first adapter is written specifically for the application's own Cognito pool. A more portable adapter (arbitrary OIDC provider, or an API key) is future work — see `roadmap.md`.
+**Adapters:** `CognitoIdentityVerifier` (planned) — verifies the caller's Cognito JWT against a configured Cognito user pool, returns a configured claim (default `sub`) as `userId`. Built generic at the pool level: pool id, region, app client id, and the userId claim are deploy-time configuration (see the Adapters table in `tech-stack.md`), so the same adapter works for any installer on Cognito without code changes. Deliberate near-term coupling stays at the technology level, not the pool level: the adapter still only speaks Cognito's JWT/JWKS format. A more portable adapter (arbitrary OIDC provider, or an API key) is future work — see `roadmap.md`.
 
 ### `IConsentStore` — the User side
 

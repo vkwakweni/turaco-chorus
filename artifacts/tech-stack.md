@@ -26,7 +26,7 @@ One row per port defined in `domain-interfaces-and-objects.md`.
 
 | Port | Adapter | Technology | Notes |
 |---|---|---|---|
-| `IIdentityVerifier` | `CognitoIdentityVerifier` | Amazon Cognito (JWT) | Verifies the caller's credential against Cognito's JWKS endpoint; derives `userId` from the token's `sub` claim |
+| `IIdentityVerifier` | `CognitoIdentityVerifier` | Amazon Cognito (JWT) | Verifies the caller's credential against Cognito's JWKS endpoint (derived from configured region + user pool id); derives `userId` from a configured claim (default `sub`). Config-driven per installer — pool id, region, app client id, userId claim — same adapter, no installer-specific code |
 | `ILogDataSource` | `DynamoDbLogDataSource` | AWS SDK for .NET (DynamoDB) + AWS IAM (least-privilege role) + SSM Parameter Store | Read-only access to the upstream service's DynamoDB table; table name/ARN is published via that service's own CDK stack and consumed here — never hardcoded or duplicated |
 | `IInsightEngine` | *(unnamed — Claude adapter)* | Anthropic Claude API (Messages API) | Called twice per `/ask` request — range extraction, then answering — both calls carrying a fixed, adapter-supplied system prompt |
 | `IConsentStore` | `DynamoDbConsentStore` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusConsent`), PK `userId` only — one row per user, overwritten on every consent change |
