@@ -16,6 +16,9 @@ This is an instance of **Ports and Adapters** (Hexagonal Architecture): the core
 
 By the adapter depending on the port, it means that many technologies can interface with the core implementations, without touching the business logic.
 
+**Persistence ownership differs by port:**
+- `ILogDataSource` reads data that belongs to whatever *upstream* application Turaco Chorus is connected to — the technology behind it isn't Turaco Chorus's choice, since it's dictated by that application's own existing storage.
+- `IConsentStore` and `IAuditLogger`, by contrast, hold data that belongs to Turaco Chorus itself — consent decisions, its own audit trail — which no upstream application has any stake in.
 
 ## Interfaces
 
@@ -46,7 +49,7 @@ interface IConsentStore
 
 **Returns:** the caller's current or updated `ConsentRecord`. Knows nothing about what "user" means upstream — no assumption about which auth provider or account model is behind it; `userId` is an opaque string the caller supplies.
 
-**Adapters:** not yet decided — deferred to Phase 3 (see `roadmap.md`).
+**Adapters:** `DynamoDbConsentStore` (planned) — own DynamoDB table (construct id `TuracoChorusConsent`), PK `userId` only, one row per user.
 
 ### `ILogDataSource` — the Data side
 
@@ -88,7 +91,7 @@ interface IAuditLogger
 
 **Returns:** nothing — write-only. Called once per `/ask` request, regardless of outcome (including consent denials), per the Ethics-by-Design audit requirement.
 
-**Adapters:** not yet decided — deferred to Phase 3 (see `roadmap.md`).
+**Adapters:** `DynamoDbAskAuditLogger` (planned) — own DynamoDB table (construct id `TuracoChorusAskAudit`), PK `userId`, SK `timestamp`, append-only.
 
 ## Domain objects
 

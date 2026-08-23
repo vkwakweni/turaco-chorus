@@ -42,7 +42,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 
 ## Phase 3 — Adapters, Integration & Ethics-by-Design Enforcement
 
-- [ ] Decide storage/adapter approach for `IConsentStore` and `IAuditLogger` (deferred from Phase 1); design the audit-log schema now that storage is chosen
+- [x] Decide storage/adapter approach for `IConsentStore` and `IAuditLogger` (deferred from Phase 1); design the audit-log schema now that storage is chosen
 - [ ] Design `DynamoDbLogDataSource`'s read access (deferred from Phase 1): IAM role with least-privilege read-only policy scoped to Logger's World's table, plus the CDK cross-stack export/SSM parameter for the table name
 - [ ] Design `CognitoIdentityVerifier`'s configuration (deferred from Phase 1): which Cognito user pool it verifies against, and how the .NET service validates JWTs against Cognito's JWKS endpoint
 - [ ] Implement `CognitoIdentityVerifier`, `DynamoDbLogDataSource`, and the Claude adapter for `IInsightEngine` (`ExtractRangeAsync` + `AskAsync`, both carrying the fixed system prompt) — each as its own class library project (`TuracoChorus.Adapters.Cognito`, `TuracoChorus.Adapters.DynamoDb`, `TuracoChorus.Adapters.Claude`), referencing `TuracoChorus.Core` only, added to the solution as needed rather than scaffolded upfront
@@ -70,3 +70,4 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - Frontend integration: surface the NL query box inside Logger's World's UI, calling this service's `/ask` endpoint directly
 - Replace the ASCII diagrams in `README.md` and `interaction-flows.md` with `.drawio` files, matching Logger's World's `architecture.drawio` convention — not required for the current design-doc pass
 - `ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false` — meaning an explicit revocation and "never made a consent decision at all" are currently indistinguishable (both show `Granted: false, GrantedAt: null`). Consider populating the same field on every status change, granted or revoked, rather than only on grant — so it reads as "date of the last decision," and revoked-on-this-date is distinguishable from never-decided
+- `TuracoChorusAskAudit`'s sort key is a millisecond-precision ISO-8601 timestamp, scoped per-user (partition key `userId`). Two `/ask` calls from the *same* user finishing in the same millisecond would collide and silently overwrite one audit entry — practically negligible given each request crosses two LLM round trips before reaching the audit write, but not mathematically impossible (e.g. a double-submit or client retry). A uniqueness suffix on the sort key would close this off completely if it's ever worth the added complexity
