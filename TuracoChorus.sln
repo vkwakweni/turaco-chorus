@@ -27,6 +27,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Claud
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Claude.Tests", "src\TuracoChorus.Adapters.Claude.Tests\TuracoChorus.Adapters.Claude.Tests.csproj", "{A9E915D4-F83F-453B-B354-E485CF5463B3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Gemini", "src\TuracoChorus.Adapters.Gemini\TuracoChorus.Adapters.Gemini.csproj", "{481A8326-83D2-44E3-B61F-A462E1E63A67}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Gemini.Tests", "src\TuracoChorus.Adapters.Gemini.Tests\TuracoChorus.Adapters.Gemini.Tests.csproj", "{E4701562-368F-46AA-9886-B5B19183E634}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -80,6 +84,14 @@ Global
 		{A9E915D4-F83F-453B-B354-E485CF5463B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A9E915D4-F83F-453B-B354-E485CF5463B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A9E915D4-F83F-453B-B354-E485CF5463B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{481A8326-83D2-44E3-B61F-A462E1E63A67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{481A8326-83D2-44E3-B61F-A462E1E63A67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{481A8326-83D2-44E3-B61F-A462E1E63A67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{481A8326-83D2-44E3-B61F-A462E1E63A67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4701562-368F-46AA-9886-B5B19183E634}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4701562-368F-46AA-9886-B5B19183E634}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4701562-368F-46AA-9886-B5B19183E634}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4701562-368F-46AA-9886-B5B19183E634}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{6D7BD567-53F7-4A79-A88A-A2717F034EA2} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
@@ -93,5 +105,7 @@ Global
 		{82502395-D078-4D7C-B96D-2D70287F63D5} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{3887C341-B8A3-4265-A663-DA2493512860} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{A9E915D4-F83F-453B-B354-E485CF5463B3} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{481A8326-83D2-44E3-B61F-A462E1E63A67} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{E4701562-368F-46AA-9886-B5B19183E634} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 	EndGlobalSection
 EndGlobal
