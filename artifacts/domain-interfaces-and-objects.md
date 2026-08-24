@@ -35,7 +35,7 @@ interface IIdentityVerifier
 
 **Returns:** the verified `userId` on success. Any failure (thrown exception, or however the adapter signals invalidity) is treated by the inbound layer as `401 Unauthorized`, before any other port is called.
 
-**Adapters:** `CognitoIdentityVerifier` (planned) — verifies the caller's Cognito JWT against a configured Cognito user pool, returns a configured claim (default `sub`) as `userId`. Built generic at the pool level: pool id, region, app client id, and the userId claim are deploy-time configuration (see the Adapters table in `tech-stack.md`), so the same adapter works for any installer on Cognito without code changes. Deliberate near-term coupling stays at the technology level, not the pool level: the adapter still only speaks Cognito's JWT/JWKS format. A more portable adapter (arbitrary OIDC provider, or an API key) is future work — see `roadmap.md`.
+**Adapters:** `CognitoIdentityVerifier` — verifies the caller's Cognito JWT against a configured Cognito user pool, returns a configured claim (default `sub`) as `userId`. Built generic at the pool level: pool id, region, app client id, and the userId claim are deploy-time configuration (see the Adapters table in `tech-stack.md`), so the same adapter works for any installer on Cognito without code changes. Deliberate near-term coupling stays at the technology level, not the pool level: the adapter still only speaks Cognito's JWT/JWKS format. A more portable adapter (arbitrary OIDC provider, or an API key) is future work — see `roadmap.md`.
 
 ### `IConsentStore` — the User side
 
@@ -62,7 +62,7 @@ interface ILogDataSource
 
 **Returns:** `AggregateStats` — never raw entry text, a constraint enforced by the return type itself (it has no field capable of holding it), not by a runtime check. `from`/`to` are nullable — a null bound means open-ended ("earliest available" / "latest"), resolved however the adapter sees fit — but whatever it resolves to, `AggregateStats.range` always comes back concrete, never null.
 
-**Adapters:** `DynamoDbLogDataSource` (planned) — reads the upstream service's DynamoDB table, read-only, mapping its own item shapes into `AggregateStats`. Built generic, not hardcoded to one installer: the item-shape mapping (key structure, date attribute, dimension resolution) is supplied as configuration per deployment — see `dynamodb-adapter.md`. The `sourceId` parameter is named from the adapter's perspective, not the caller's: the caller supplies its own `userId`, and translating that into whatever id the data source actually keys on — if needed at all — is the adapter's job.
+**Adapters:** `DynamoDbLogDataSource` — reads the upstream service's DynamoDB table, read-only, mapping its own item shapes into `AggregateStats`. Built generic, not hardcoded to one installer: the item-shape mapping (key structure, date attribute, dimension resolution) is supplied as configuration per deployment — see `dynamodb-adapter.md`. The `sourceId` parameter is named from the adapter's perspective, not the caller's: the caller supplies its own `userId`, and translating that into whatever id the data source actually keys on — if needed at all — is the adapter's job.
 
 ### `IInsightEngine` — the AI side
 
@@ -78,7 +78,7 @@ interface IInsightEngine
 
 **Returns:** `ExtractRangeAsync` returns a `RequestedRange` resolved from the question text alone — it never sees `AggregateStats`. `AskAsync` returns the final `Answer`, built only from the `AggregateStats` it's given, so it's structurally incapable of leaking anything beyond what's already been aggregated.
 
-**Adapters:** a Claude adapter (planned, unnamed) — wraps the Anthropic Claude API. Both methods attach a fixed system prompt, supplied by the adapter itself, never the caller — keeping it adapter-internal rather than a parameter closes off a prompt-injection surface at exactly the boundary the Ethics-by-Design requirements protect. Final wording is settled in `ethics-by-design.md`, not here.
+**Adapters:** two — `ClaudeInsightEngine` (Anthropic Claude API) and `GeminiInsightEngine` (Google Gemini API), genuinely interchangeable behind this one port, not a primary plus a stub. Both attach a fixed system prompt, supplied by the adapter itself, never the caller — keeping it adapter-internal rather than a parameter closes off a prompt-injection surface at exactly the boundary the Ethics-by-Design requirements protect. Both prompts are word-for-word identical between the two adapters. Final wording is settled in `ethics-by-design.md`, not here. Built config-driven per installer, same pattern as `CognitoIdentityVerifier`/`DynamoDbLogDataSource`.
 
 ### `IAuditLogger` — the accountability side
 

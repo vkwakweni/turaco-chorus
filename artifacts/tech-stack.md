@@ -22,13 +22,14 @@ Split in two, to keep what's core clearly separate from what's an adapter — sa
 
 ## Adapters
 
-One row per port defined in `domain-interfaces-and-objects.md`.
+One row per adapter, grouped by the port it implements; see port definitions in `domain-interfaces-and-objects.md`.
 
 | Port | Adapter | Technology | Notes |
 |---|---|---|---|
 | `IIdentityVerifier` | `CognitoIdentityVerifier` | Amazon Cognito (JWT) | Verifies the caller's credential against Cognito's JWKS endpoint (derived from configured region + user pool id); derives `userId` from a configured claim (default `sub`). Config-driven per installer — pool id, region, app client id, userId claim — same adapter, no installer-specific code |
 | `ILogDataSource` | `DynamoDbLogDataSource` | AWS SDK for .NET (DynamoDB) + AWS IAM (least-privilege role) + SSM Parameter Store | Read-only access to the upstream service's DynamoDB table; table name/ARN is published via that service's own CDK stack and consumed here — never hardcoded or duplicated. Item-shape mapping is config-driven, not installer-specific adapter code — see `dynamodb-adapter.md` |
-| `IInsightEngine` | *(unnamed — Claude adapter)* | Anthropic Claude API (Messages API) | Called twice per `/ask` request — range extraction, then answering — both calls carrying a fixed, adapter-supplied system prompt |
+| `IInsightEngine` | `ClaudeInsightEngine` | Anthropic Claude API (Messages API) | Called twice per `/ask` request — range extraction, then answering — both calls carrying a fixed, adapter-supplied system prompt. Structured JSON output via prompt instruction, defensively parsed (strips a markdown fence if the model adds one anyway) |
+| `IInsightEngine` | `GeminiInsightEngine` | Google Gemini API (`generateContent`) | Same contract as `ClaudeInsightEngine`, word-for-word identical system prompts — swappable behind the same port. Structured output enforced natively via `responseMimeType: "application/json"`. Google's free tier is ongoing (unlike Claude's one-time trial credit), so this is the adapter usable without any Claude API spend |
 | `IConsentStore` | `DynamoDbConsentStore` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusConsent`), PK `userId` only — one row per user, overwritten on every consent change |
 | `IAuditLogger` | `DynamoDbAskAuditLogger` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusAskAudit`), PK `userId` + SK `timestamp` (ISO-8601, millisecond precision) — append-only, one row per `/ask` call |
 
@@ -67,5 +68,6 @@ See `roadmap.md`'s Later section for the known, low-probability same-millisecond
 * **AWS SSM Parameter Store**: Holds the DynamoDB table name/ARN exported from the upstream service's CDK stack, so this service can look it up without hardcoding or duplicating infra state.
 * **Docker**: Containerises the .NET service for consistent build/deploy across CI and ECS.
 * **GitHub Actions**: CI/CD runner — lints, tests, builds the Docker image, pushes it, and triggers the ECS deploy.
+* **Google Gemini API**: LLM API used to answer natural-language questions about a user's log data. Called twice per `/ask` request — once to resolve the question's date range, once to produce the answer — both calls carrying a fixed, adapter-supplied system prompt. Structured JSON output is enforced natively via `generationConfig.responseMimeType`. Only aggregated stats (counts, categories, date ranges) are ever sent to it — never raw log entry text — per the Ethics-by-Design requirements.
 * **.NET 8 Web API**: The service itself — exposes `/stats`, `/ask`, and `/consent` endpoints.
 * **xUnit**: .NET test framework used for orchestration unit tests, run against hand-written in-memory fakes per port rather than a mocking library — fakes hold real state, closer to how the ports actually behave.
