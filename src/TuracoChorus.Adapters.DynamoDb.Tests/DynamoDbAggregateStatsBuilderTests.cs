@@ -10,7 +10,6 @@ public sealed class DynamoDbAggregateStatsBuilderTests
     // DirectAttribute dimension ("date") — not modelled on any specific installer's schema.
     private static readonly DynamoDbLogDataSourceOptions SampleOptions = new(
         TableName: "SourceTable",
-        Region: "us-east-1",
         PartitionKeyAttribute: "PK",
         PartitionKeyValueTemplate: "USER#{sourceId}",
         SortKeyAttribute: "SK",
@@ -182,21 +181,34 @@ public sealed class DynamoDbAggregateStatsBuilderTests
     [Fact]
     public void IsColocated_TrueWhenSameTableAndSamePartitionTemplate()
     {
-        var lookup = new LookupSource("categoryId", LookupTableName: null, "USER#{sourceId}", "CAT#{categoryId}", "name");
+        var lookup = new LookupSource(
+            IdAttributeName: "categoryId",
+            LookupPartitionKeyValueTemplate: "USER#{sourceId}",
+            LookupSortKeyValueTemplate: "CAT#{categoryId}",
+            LookupNameAttribute: "name");
         Assert.True(DynamoDbAggregateStatsBuilder.IsColocated(SampleOptions, lookup));
     }
 
     [Fact]
     public void IsColocated_FalseWhenLookupTableDiffers()
     {
-        var lookup = new LookupSource("categoryId", LookupTableName: "OtherTable", "USER#{sourceId}", "CAT#{categoryId}", "name");
+        var lookup = new LookupSource(
+            IdAttributeName: "categoryId",
+            LookupPartitionKeyValueTemplate: "USER#{sourceId}",
+            LookupSortKeyValueTemplate: "CAT#{categoryId}",
+            LookupNameAttribute: "name",
+            LookupTableName: "OtherTable");
         Assert.False(DynamoDbAggregateStatsBuilder.IsColocated(SampleOptions, lookup));
     }
 
     [Fact]
     public void IsColocated_FalseWhenPartitionKeyTemplateDiffers()
     {
-        var lookup = new LookupSource("categoryId", LookupTableName: null, "TENANT#{sourceId}", "CAT#{categoryId}", "name");
+        var lookup = new LookupSource(
+            IdAttributeName: "categoryId",
+            LookupPartitionKeyValueTemplate: "TENANT#{sourceId}",
+            LookupSortKeyValueTemplate: "CAT#{categoryId}",
+            LookupNameAttribute: "name");
         Assert.False(DynamoDbAggregateStatsBuilder.IsColocated(SampleOptions, lookup));
     }
 }

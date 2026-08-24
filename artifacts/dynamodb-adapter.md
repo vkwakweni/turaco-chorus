@@ -31,17 +31,18 @@ Design for `DynamoDbLogDataSource`, the concrete adapter behind `ILogDataSource`
 ```
 DynamoDbLogDataSourceOptions
 ├── TableName                      — the installer's DynamoDB table name
-├── Region                         — AWS region
 ├── PartitionKeyAttribute          — e.g. "PK"
 ├── PartitionKeyValueTemplate      — e.g. "USER#{sourceId}"
-├── SortKeyAttribute               — optional; only needed if entries share a partition with other item types
-├── EntrySortKeyPrefix             — optional; isolates entry items from other item types in that partition
 ├── DateAttribute                  — e.g. "createdAt" (ISO-8601); used only for from/to range filtering
-└── Dimensions                     — list of installer-defined output dimensions, may be empty (total-only stats):
-      └── { Name, Source } where Source is one of:
-            ├── DirectAttribute    { AttributeName }
-            └── Lookup             { IdAttributeName, LookupTableName, LookupPartitionKeyValueTemplate, LookupSortKeyValueTemplate, LookupNameAttribute }
+├── Dimensions                     — list of installer-defined output dimensions, may be empty (total-only stats):
+│     └── { Name, Source } where Source is one of:
+│           ├── DirectAttribute    { AttributeName }
+│           └── Lookup             { IdAttributeName, LookupPartitionKeyValueTemplate, LookupSortKeyValueTemplate, LookupNameAttribute, LookupTableName? }
+├── SortKeyAttribute?              — optional; only needed if entries share a partition with other item types
+└── EntrySortKeyPrefix?            — optional; isolates entry items from other item types in that partition
 ```
+
+No `Region` field — the adapter itself never needs it. It's constructed with an already-configured `IAmazonDynamoDB` client (region-bound wherever that client is set up, item 6's job), matching the same "inject shared infrastructure, don't duplicate its configuration" rule the Cognito/Claude/Gemini adapters follow for their own clients.
 
 - `LookupTableName` is optional per dimension and defaults to `TableName` when omitted.
   - A dimension whose definition items are colocated with entries (as Logger's World's category definitions are) never sets it.

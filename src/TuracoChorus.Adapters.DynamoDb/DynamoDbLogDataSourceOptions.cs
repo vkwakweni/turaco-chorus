@@ -2,13 +2,12 @@ namespace TuracoChorus.Adapters.DynamoDb;
 
 public sealed record DynamoDbLogDataSourceOptions(
     string TableName,
-    string Region,
     string PartitionKeyAttribute,
     string PartitionKeyValueTemplate,
-    string? SortKeyAttribute,
-    string? EntrySortKeyPrefix,
     string DateAttribute,
-    IReadOnlyList<DimensionConfig> Dimensions);
+    IReadOnlyList<DimensionConfig> Dimensions,
+    string? SortKeyAttribute = null,
+    string? EntrySortKeyPrefix = null);
 
 public sealed record DimensionConfig(string Name, DimensionSource Source);
 
@@ -23,7 +22,7 @@ public sealed record DirectAttributeSource(string AttributeName) : DimensionSour
 /// </summary>
 public sealed record LookupSource(
     string IdAttributeName,
-    string? LookupTableName,
     string LookupPartitionKeyValueTemplate,
     string LookupSortKeyValueTemplate,
-    string LookupNameAttribute) : DimensionSource;
+    string LookupNameAttribute,
+    string? LookupTableName = null) : DimensionSource;
