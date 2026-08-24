@@ -115,7 +115,7 @@ AggregateStats
 ConsentRecord
 ├── userId: string
 ├── granted: bool
-└── grantedAt: date | null
+└── grantedAt: datetime | null
 
 Answer
 ├── text: string
@@ -133,4 +133,4 @@ AuditEntry
 
 `AggregateStats.dimensions` has no built-in concepts — not even date-bucketing. Every dimension is defined entirely by the installer's `ILogDataSource` adapter configuration (see `dynamodb-adapter.md`). Dimension names should be unique within `dimensions`, and bucket values unique within a dimension's `buckets`; order in either list is adapter-determined, never contractual. An empty `dimensions` list is a valid response (total-only stats), not a special case.
 
-**Known gap, deferred:** `ConsentRecord.GrantedAt` is currently only set when `granted` is `true` — so it's `null` both for "never made a consent decision" and for "explicitly revoked." Those are meaningfully different facts (accountability requires distinguishing them), currently indistinguishable. The intended fix — populate `GrantedAt` on every status change, not just on grant, so it reads as "date of the last decision" and `null` means only "never decided" — is noted in `roadmap.md`'s Later section rather than implemented now.
+`ConsentRecord.GrantedAt` is set on every status change, granted or revoked — it reads as "timestamp of the last decision." `null` means only "never made a consent decision at all," distinguishable from an explicit revocation on record.

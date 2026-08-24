@@ -31,6 +31,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Gemin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.Gemini.Tests", "src\TuracoChorus.Adapters.Gemini.Tests\TuracoChorus.Adapters.Gemini.Tests.csproj", "{E4701562-368F-46AA-9886-B5B19183E634}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.DynamoDb.Consent", "src\TuracoChorus.Adapters.DynamoDb.Consent\TuracoChorus.Adapters.DynamoDb.Consent.csproj", "{1274EB8D-1968-4814-8D11-7D6707905AEB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.DynamoDb.Consent.Tests", "src\TuracoChorus.Adapters.DynamoDb.Consent.Tests\TuracoChorus.Adapters.DynamoDb.Consent.Tests.csproj", "{142251B4-AB6E-4397-8D54-8C08B5FA54A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.DynamoDb.Audit", "src\TuracoChorus.Adapters.DynamoDb.Audit\TuracoChorus.Adapters.DynamoDb.Audit.csproj", "{5845DE1D-7F0C-4BAE-96FA-2A57B9071339}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuracoChorus.Adapters.DynamoDb.Audit.Tests", "src\TuracoChorus.Adapters.DynamoDb.Audit.Tests\TuracoChorus.Adapters.DynamoDb.Audit.Tests.csproj", "{66216AC9-4B71-4CCD-A1EF-F2C84B0495D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -92,6 +100,22 @@ Global
 		{E4701562-368F-46AA-9886-B5B19183E634}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E4701562-368F-46AA-9886-B5B19183E634}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4701562-368F-46AA-9886-B5B19183E634}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1274EB8D-1968-4814-8D11-7D6707905AEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1274EB8D-1968-4814-8D11-7D6707905AEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1274EB8D-1968-4814-8D11-7D6707905AEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1274EB8D-1968-4814-8D11-7D6707905AEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{142251B4-AB6E-4397-8D54-8C08B5FA54A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{142251B4-AB6E-4397-8D54-8C08B5FA54A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{142251B4-AB6E-4397-8D54-8C08B5FA54A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{142251B4-AB6E-4397-8D54-8C08B5FA54A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5845DE1D-7F0C-4BAE-96FA-2A57B9071339}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5845DE1D-7F0C-4BAE-96FA-2A57B9071339}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5845DE1D-7F0C-4BAE-96FA-2A57B9071339}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5845DE1D-7F0C-4BAE-96FA-2A57B9071339}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66216AC9-4B71-4CCD-A1EF-F2C84B0495D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66216AC9-4B71-4CCD-A1EF-F2C84B0495D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66216AC9-4B71-4CCD-A1EF-F2C84B0495D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66216AC9-4B71-4CCD-A1EF-F2C84B0495D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{6D7BD567-53F7-4A79-A88A-A2717F034EA2} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
@@ -107,5 +131,9 @@ Global
 		{A9E915D4-F83F-453B-B354-E485CF5463B3} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{481A8326-83D2-44E3-B61F-A462E1E63A67} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 		{E4701562-368F-46AA-9886-B5B19183E634} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{1274EB8D-1968-4814-8D11-7D6707905AEB} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{142251B4-AB6E-4397-8D54-8C08B5FA54A2} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{5845DE1D-7F0C-4BAE-96FA-2A57B9071339} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
+		{66216AC9-4B71-4CCD-A1EF-F2C84B0495D8} = {96627E72-64FB-47A6-9ACB-3197C57F56B1}
 	EndGlobalSection
 EndGlobal

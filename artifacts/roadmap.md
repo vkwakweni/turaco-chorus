@@ -50,9 +50,10 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - [x] Implement `ClaudeInsightEngine` for `IInsightEngine` (`TuracoChorus.Adapters.Claude`) — hand-rolled Messages API client (no official Anthropic .NET SDK exists), structured-JSON prompts, `stop_reason` completion checking; unit-tested against hand-built responses and a fake HTTP handler
 - [x] Implement `GeminiInsightEngine` as a second, genuinely interchangeable `IInsightEngine` adapter (`TuracoChorus.Adapters.Gemini`) — not originally scoped; added so the service has a working AI provider without needing Claude API credits (Claude has no ongoing free tier, Gemini does). Same contract, word-for-word identical system prompts, native structured-output support; same test shape as Claude
 - [x] Cross-adapter design review across all four: constructor shape, options-POCO conventions, error-handling consistency (introduced the `InsightResponseParseException`/`QuestionNotAnsweredException` split), and project structure — fixed `DynamoDbLogDataSourceOptions`'s null-default inconsistency and removed its unused `Region` field along the way
-- [ ] Implement the chosen `IConsentStore` and `IAuditLogger` adapters, same one-project-per-adapter structure
+- [x] Implement the chosen `IConsentStore` and `IAuditLogger` adapters, same one-project-per-adapter structure
 - [ ] Swap DI registrations from fakes to real adapters — Phase 2's orchestration unit tests must pass unchanged, proving the core logic didn't need to change; add adapter-level integration tests (real Cognito verification, real DynamoDB read, real Claude call)
 - [ ] Verify each Ethics-by-Design requirement holds end-to-end with real adapters: consent gating, no raw-text leakage, audit completeness
+  - [ ] Fold the "Two Adapters, One Port" artifact into a permanent `artifacts/` doc (e.g. `ai-provider-adapters.md`), matching `cognito-adapter.md`/`dynamodb-adapter.md`'s treatment — currently just a claude.ai Artifact, not yet a repo file
 
 ## Phase 4 — Containerization + CI/CD
 
@@ -73,5 +74,5 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 
 - Frontend integration: surface the NL query box inside Logger's World's UI, calling this service's `/ask` endpoint directly
 - Replace the ASCII diagrams in `README.md` and `interaction-flows.md` with `.drawio` files, matching Logger's World's `architecture.drawio` convention — not required for the current design-doc pass
-- `ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false` — meaning an explicit revocation and "never made a consent decision at all" are currently indistinguishable (both show `Granted: false, GrantedAt: null`). Consider populating the same field on every status change, granted or revoked, rather than only on grant — so it reads as "date of the last decision," and revoked-on-this-date is distinguishable from never-decided
+- ~~`ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false`~~ — resolved while implementing `DynamoDbConsentStore`/`FakeConsentStore`: `GrantedAt` is now populated on every status change, granted or revoked, so it reads as "date of the last decision" and `null` means only "never decided"
 - `TuracoChorusAskAudit`'s sort key is a millisecond-precision ISO-8601 timestamp, scoped per-user (partition key `userId`). Two `/ask` calls from the *same* user finishing in the same millisecond would collide and silently overwrite one audit entry — practically negligible given each request crosses two LLM round trips before reaching the audit write, but not mathematically impossible (e.g. a double-submit or client retry). A uniqueness suffix on the sort key would close this off completely if it's ever worth the added complexity

@@ -24,7 +24,7 @@ public sealed record AggregateStats(
     int TotalEntries,
     IReadOnlyList<Dimension> Dimensions);
 
-public sealed record ConsentRecord(string UserId, bool Granted, DateOnly? GrantedAt);
+public sealed record ConsentRecord(string UserId, bool Granted, DateTimeOffset? GrantedAt);
 
 public sealed record DataUsed(IReadOnlyList<string> StatsQueried, DateRange Range);
 

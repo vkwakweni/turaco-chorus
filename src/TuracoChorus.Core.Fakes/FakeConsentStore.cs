@@ -19,7 +19,7 @@ public sealed class FakeConsentStore : IConsentStore
 
     public Task<ConsentRecord> SetConsentAsync(string userId, bool granted)
     {
-        var record = new ConsentRecord(userId, granted, granted ? DateOnly.FromDateTime(DateTime.UtcNow) : null);
+        var record = new ConsentRecord(userId, granted, DateTimeOffset.UtcNow);
         _records[userId] = record;
         return Task.FromResult(record);
     }

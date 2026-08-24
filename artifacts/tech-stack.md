@@ -42,7 +42,7 @@ Item-level shape for the two tables Turaco Chorus owns outright (`ILogDataSource
 ```
 PK  userId           (S)
     granted          (BOOL)
-    grantedAt        (S, ISO-8601 date)
+    grantedAt        (S, ISO-8601 timestamp)
 ```
 
 **`TuracoChorusAskAudit`** — append-only, one row per `/ask` call.
