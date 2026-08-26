@@ -1,6 +1,6 @@
 ---
 title: Technology Glossary
-last-updated: 2026-08-13
+last-updated: 2026-08-26
 ---
 
 # Tech Stack
@@ -27,7 +27,7 @@ One row per adapter, grouped by the port it implements; see port definitions in 
 | Port | Adapter | Technology | Notes |
 |---|---|---|---|
 | `IIdentityVerifier` | `CognitoIdentityVerifier` | Amazon Cognito (JWT) | Verifies the caller's credential against Cognito's JWKS endpoint (derived from configured region + user pool id); derives `userId` from a configured claim (default `sub`). Config-driven per installer — pool id, region, app client id, userId claim — same adapter, no installer-specific code |
-| `ILogDataSource` | `DynamoDbLogDataSource` | AWS SDK for .NET (DynamoDB) + AWS IAM (least-privilege role) + SSM Parameter Store | Read-only access to the upstream service's DynamoDB table; table name/ARN is published via that service's own CDK stack and consumed here — never hardcoded or duplicated. Item-shape mapping is config-driven, not installer-specific adapter code — see `dynamodb-adapter.md` |
+| `ILogDataSource` | `DynamoDbLogDataSource` | AWS SDK for .NET (DynamoDB) + AWS IAM (least-privilege role) | Read-only access to the upstream service's own DynamoDB table; table name/ARN supplied directly via config (user secrets/environment variables), same as every other adapter setting: no cross-stack dependency on the upstream's own CDK stack. Item-shape mapping is config-driven, not installer-specific adapter code — see `dynamodb-adapter.md` |
 | `IInsightEngine` | `ClaudeInsightEngine` | Anthropic Claude API (Messages API) | Called twice per `/ask` request — range extraction, then answering — both calls carrying a fixed, adapter-supplied system prompt. Structured JSON output via prompt instruction, defensively parsed (strips a markdown fence if the model adds one anyway) |
 | `IInsightEngine` | `GeminiInsightEngine` | Google Gemini API (`generateContent`) | Same contract as `ClaudeInsightEngine`, word-for-word identical system prompts — swappable behind the same port. Structured output enforced natively via `responseMimeType: "application/json"`. Google's free tier is ongoing (unlike Claude's one-time trial credit), so this is the adapter usable without any Claude API spend |
 | `IConsentStore` | `DynamoDbConsentStore` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusConsent`), PK `userId` only — one row per user, overwritten on every consent change |
@@ -65,7 +65,6 @@ See `roadmap.md`'s Later section for the known, low-probability same-millisecond
 * **AWS IAM (least-privilege role)**: Scoped role granting this service read-only access to the upstream service's DynamoDB table and nothing else — the enforced service boundary between the two repos.
 * **AWS SDK for .NET**: Official AWS client library for .NET; used by `DynamoDbLogDataSource` (the `ILogDataSource` adapter) to read — never write — from the upstream service's DynamoDB table.
 * **AWS Secrets Manager**: Stores provider credentials outside source control and environment files; injected into the ECS task at runtime.
-* **AWS SSM Parameter Store**: Holds the DynamoDB table name/ARN exported from the upstream service's CDK stack, so this service can look it up without hardcoding or duplicating infra state.
 * **Docker**: Containerises the .NET service for consistent build/deploy across CI and ECS.
 * **GitHub Actions**: CI/CD runner — lints, tests, builds the Docker image, pushes it, and triggers the ECS deploy.
 * **Google Gemini API**: LLM API used to answer natural-language questions about a user's log data. Called twice per `/ask` request — once to resolve the question's date range, once to produce the answer — both calls carrying a fixed, adapter-supplied system prompt. Structured JSON output is enforced natively via `generationConfig.responseMimeType`. Only aggregated stats (counts, categories, date ranges) are ever sent to it — never raw log entry text — per the Ethics-by-Design requirements.
