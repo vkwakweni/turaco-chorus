@@ -1,7 +1,6 @@
 using TuracoChorus;
 using TuracoChorus.Auth;
 using TuracoChorus.Contracts;
-using TuracoChorus.Core.Fakes;
 using TuracoChorus.Core.Orchestration;
 using TuracoChorus.Core.Ports;
 
@@ -12,14 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Port implementations
-    // TODO: fakes for now (Phase 2); Phase 3 swaps these for real adapters.
-// Singleton: each fake's in-memory state (e.g. consent, audit entries) must persist across requests.
-builder.Services.AddSingleton<IIdentityVerifier, FakeIdentityVerifier>();
-builder.Services.AddSingleton<IConsentStore, FakeConsentStore>();
-builder.Services.AddSingleton<ILogDataSource, FakeLogDataSource>();
-builder.Services.AddSingleton<IInsightEngine, FakeInsightEngine>();
-builder.Services.AddSingleton<IAuditLogger, FakeAuditLogger>();
+builder.AddPortAdapters();
 
 builder.Services.AddScoped<StatsOrchestrator>();
 builder.Services.AddScoped<ConsentOrchestrator>();
@@ -33,7 +25,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 #if DEBUG
-    await app.UseDevelopmentSeedDataAsync();
+    if (app.Configuration.GetValue<bool>("UseFakeAdapters"))
+    {
+        await app.UseDevelopmentSeedDataAsync();
+    }
 #endif
 }
 

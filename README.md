@@ -25,14 +25,16 @@ The core depends only on interfaces it defines itself ("ports"); every concrete 
                     │                 │       │                 │      \
                     │                 │       │                 │       IAuditLogger
                     ▼                 ▼       ▼                 ▼           │
-          CognitoIdentityVerifier  (adapter  DynamoDbLogDataSource   Claude adapter
-          (Amazon Cognito JWT)      TBD —     (AWS SDK, read-only)   (Anthropic API,
-                                    Phase 3)                          2 calls/request)
+          CognitoIdentityVerifier  DynamoDb  DynamoDbLogDataSource  Claude/Gemini adapter
+          (Amazon Cognito JWT)     ConsentStore (AWS SDK, read-only) (config-switchable,
+                                                                       2 calls/request)
                                                                             │
-                                                                    (adapter TBD — Phase 3)
+                                                                   DynamoDbAskAuditLogger
 ```
 
-`IConsentStore` and `IAuditLogger` have no chosen adapter yet — that decision is deliberately deferred to Phase 3, once the core logic has been built and unit-tested against fakes for all five ports (see `roadmap.md`'s sequencing logic).
+All five ports have real adapters now (see "Configuration" below for how to wire them in) — the
+diagram's adapter names are the concrete types, config-driven per installer rather than
+per-application.
 
 ## Project layout
 
@@ -50,13 +52,147 @@ dotnet user-secrets set "DevSeedData:Token" "<any value>"
 dotnet user-secrets set "DevSeedData:UserId" "<any value>"
 ```
 
-This only takes effect in `Debug` builds (see `DevSeedData.cs`) — it's compiled out of `Release` builds entirely, so it can never reach a real deployment. Then:
+This only takes effect in `Debug` builds (see `DevSeedData.cs`) — it's compiled out of `Release` builds entirely, so it can never reach a real deployment. As of the real-adapter wiring below, this fakes path also requires one more value — set `UseFakeAdapters` alongside the two above:
+
+```bash
+dotnet user-secrets set "UseFakeAdapters" "true"
+```
+
+Then:
 
 ```bash
 curl -H "Authorization: Bearer <the token you set above>" http://localhost:5006/stats
 ```
 
+## Configuration
+
+Every installation-specific value:
+* Your AWS account
+* Your Cognito pool
+* Your own upstream data table
+* your AI provider key
+
+is read from ASP.NET Core configuration (`IConfiguration`)
+
+At startup, a small hand-written reader per adapter (`src/TuracoChorus/Configuration/`) reads
+these keys directly and throws immediately, naming the exact missing or malformed key, if
+anything required is absent. The app will not start silently misconfigured.
+
+### Running without any real credentials
+
+- `UseFakeAdapters` (bool, optional, default `false`): set `true` to run entirely against  in-memory fakes (no AWS account, Cognito pool, DynamoDB table, or AI key needed). Every key below is ignored in that mode. See "Local development setup" above.
+
+### Host-level
+
+| Key | Type | Required | Notes |
+|---|---|---|---|
+| `Aws:Region` | string | yes* | Region for the shared DynamoDB client, e.g. `us-east-1` |
+| `InsightProvider` | `Claude` \| `Gemini` | yes* | Selects the registered `IInsightEngine`; only that provider's API key needs a real value |
+
+\* unless `UseFakeAdapters` is `true`
+
+### `IIdentityVerifier` — Amazon Cognito
+
+| Key | Type | Required | Notes |
+|---|---|---|---|
+| `Cognito:UserPoolId` | string | yes | |
+| `Cognito:Region` | string | yes | |
+| `Cognito:AppClientId` | string | yes | |
+| `Cognito:TokenType` | `IdToken` \| `AccessToken` | yes | Which token type your clients present |
+| `Cognito:UserIdClaim` | string | no | default `sub` |
+
+### `ILogDataSource` — DynamoDB (your own upstream table)
+
+| Key | Type | Required | Notes |
+|---|---|---|---|
+| `DynamoDb:LogData:TableName` | string | yes | |
+| `DynamoDb:LogData:PartitionKeyAttribute` | string | yes | e.g. `PK` |
+| `DynamoDb:LogData:PartitionKeyValueTemplate` | string | yes | e.g. `USER#{sourceId}` |
+| `DynamoDb:LogData:DateAttribute` | string | yes | Attribute used for `from`/`to` range filtering |
+| `DynamoDb:LogData:SortKeyAttribute` | string | no | Only needed if entries share a partition with other item types |
+| `DynamoDb:LogData:EntrySortKeyPrefix` | string | no | Isolates entry items from other item types in that partition |
+| `DynamoDb:LogData:Dimensions` | array | no | See below — omit entirely for total-only stats |
+
+Each entry in `Dimensions` is either a `Direct` (read a bucket value straight off an attribute) or
+a `Lookup` (resolve an id to a display name via another item) dimension, picked by its `Type`:
+
+```json
+"DynamoDb": {
+  "LogData": {
+    "Dimensions": [
+      { "Name": "day", "Type": "Direct", "AttributeName": "loggedAt" },
+      {
+        "Name": "category", "Type": "Lookup",
+        "IdAttributeName": "habitTypeId",
+        "LookupPartitionKeyValueTemplate": "USER#{sourceId}",
+        "LookupSortKeyValueTemplate": "HABITTYPE#{habitTypeId}",
+        "LookupNameAttribute": "displayName"
+      }
+    ]
+  }
+}
+```
+
+(This JSON is illustrative only — see the worked example below for how to actually set nested
+values like this via `dotnet user-secrets`.) `LookupSource` also accepts an optional
+`LookupTableName`, defaulting to `DynamoDb:LogData:TableName` when the lookup items are colocated
+with entries in the same table.
+
+### `IConsentStore` / `IAuditLogger` — DynamoDB (owned by this service)
+
+| Key | Type | Required | Notes |
+|---|---|---|---|
+| `DynamoDb:Consent:TableName` | string | yes | Turaco Chorus owns and creates this table itself (see `artifacts/tech-stack.md`) |
+| `DynamoDb:Audit:TableName` | string | yes | Same — append-only audit log |
+
+### `IInsightEngine` — Claude or Gemini
+
+| Key | Type | Required | Notes |
+|---|---|---|---|
+| `Claude:ApiKey` | string | only if `InsightProvider` is `Claude` | |
+| `Claude:Model` | string | no | default `claude-haiku-4-5` |
+| `Claude:BaseUrl` | string | no | default `https://api.anthropic.com` |
+| `Gemini:ApiKey` | string | only if `InsightProvider` is `Gemini` | |
+| `Gemini:Model` | string | no | default `gemini-2.5-flash` |
+| `Gemini:BaseUrl` | string | no | default `https://generativelanguage.googleapis.com` |
+
+### Worked example
+
+A fictitious deployment against a made-up app ("Acme Habit Tracker") — replace every value with
+your own:
+
+```bash
+dotnet user-secrets set "Aws:Region" "us-east-1"
+dotnet user-secrets set "InsightProvider" "Gemini"
+
+dotnet user-secrets set "Cognito:UserPoolId" "us-east-1_ExAmPle123"
+dotnet user-secrets set "Cognito:Region" "us-east-1"
+dotnet user-secrets set "Cognito:AppClientId" "1example23456789abcdefghij"
+dotnet user-secrets set "Cognito:TokenType" "AccessToken"
+
+dotnet user-secrets set "DynamoDb:LogData:TableName" "AcmeHabitEntries"
+dotnet user-secrets set "DynamoDb:LogData:PartitionKeyAttribute" "PK"
+dotnet user-secrets set "DynamoDb:LogData:PartitionKeyValueTemplate" "USER#{sourceId}"
+dotnet user-secrets set "DynamoDb:LogData:SortKeyAttribute" "SK"
+dotnet user-secrets set "DynamoDb:LogData:EntrySortKeyPrefix" "ENTRY#"
+dotnet user-secrets set "DynamoDb:LogData:DateAttribute" "loggedAt"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:0:Name" "day"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:0:Type" "Direct"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:0:AttributeName" "loggedAt"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:Name" "category"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:Type" "Lookup"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:IdAttributeName" "habitTypeId"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:LookupPartitionKeyValueTemplate" "USER#{sourceId}"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:LookupSortKeyValueTemplate" "HABITTYPE#{habitTypeId}"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:LookupNameAttribute" "displayName"
+
+dotnet user-secrets set "DynamoDb:Consent:TableName" "AcmeConsent"
+dotnet user-secrets set "DynamoDb:Audit:TableName" "AcmeAskAudit"
+
+dotnet user-secrets set "Gemini:ApiKey" "<your-gemini-api-key>"
+```
+
 ## Status
 
-Phase 1 (requirements & design) and Phase 2 (core domain & application logic) complete. Phase 3 (adapters, integration & Ethics-by-Design enforcement) not yet started — see `roadmap.md`.
+Phase 1 (requirements & design) and Phase 2 (core domain & application logic) complete. Phase 3 (adapters, integration & Ethics-by-Design enforcement) in progress — all five adapters are implemented and DI-wired behind config; adapter-level integration tests against real infrastructure are next — see `roadmap.md`.
 

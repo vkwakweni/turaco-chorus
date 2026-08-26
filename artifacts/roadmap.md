@@ -1,6 +1,6 @@
 ---
 title: Development Phases
-last-updated: 2026-08-13
+last-updated: 2026-08-26
 ---
 
 # Development Phases
@@ -51,7 +51,17 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - [x] Implement `GeminiInsightEngine` as a second, genuinely interchangeable `IInsightEngine` adapter (`TuracoChorus.Adapters.Gemini`) — not originally scoped; added so the service has a working AI provider without needing Claude API credits (Claude has no ongoing free tier, Gemini does). Same contract, word-for-word identical system prompts, native structured-output support; same test shape as Claude
 - [x] Cross-adapter design review across all four: constructor shape, options-POCO conventions, error-handling consistency (introduced the `InsightResponseParseException`/`QuestionNotAnsweredException` split), and project structure — fixed `DynamoDbLogDataSourceOptions`'s null-default inconsistency and removed its unused `Region` field along the way
 - [x] Implement the chosen `IConsentStore` and `IAuditLogger` adapters, same one-project-per-adapter structure
-- [ ] Swap DI registrations from fakes to real adapters — Phase 2's orchestration unit tests must pass unchanged, proving the core logic didn't need to change; add adapter-level integration tests (real Cognito verification, real DynamoDB read, real Claude call)
+- [x] Swap DI registrations from fakes to real adapters
+  - [x] Add project references from `TuracoChorus` to all six adapter projects (`TuracoChorus.Adapters.Cognito`, `.DynamoDb`, `.DynamoDb.Consent`, `.DynamoDb.Audit`, `.Claude`, `.Gemini` — both AI adapters, since `IInsightEngine` will be config-switchable, not hardcoded to one), plus the `AWSSDK.DynamoDBv2` package reference
+  - [x] Add an `InsightProvider` config switch (`Claude` | `Gemini`) and per-adapter config sections in `appsettings.json`/user secrets: Cognito's user pool id/region/app client id/token type, the three DynamoDB table names (log data, consent, audit) plus the log data source's dimension config, and both providers' API keys (only the selected one needs a real value) — reframed mid-implementation into a genuinely installer-facing design: hand-written fail-fast config readers (`src/TuracoChorus/Configuration/`), zero real values or defaults committed anywhere, full schema documented in `README.md`'s new "Configuration" section, and an opt-in `UseFakeAdapters` toggle preserving the fakes path for no-credentials demo runs
+  - [x] Register a single shared `IAmazonDynamoDB` client and swap all five port registrations in `Program.cs` from fakes to real adapters, resolving `IInsightEngine` from the `InsightProvider` switch — see `AdapterRegistration.cs`
+  - [x] Re-run Phase 2's orchestration unit tests unchanged and confirm they still pass — proves the core logic didn't need to change now that real adapters are wired in (confirmed: `TuracoChorus.Core.Tests` passes unmodified)
+- [ ] Add adapter-level integration tests against real infrastructure (distinct from Phase 2's fakes-based orchestration unit tests)
+  - [ ] `CognitoIdentityVerifier`: verify a real JWT issued by an actual Cognito user pool
+  - [ ] `DynamoDbLogDataSource`: read from a real table
+  - [ ] `DynamoDbConsentStore` and `DynamoDbAskAuditLogger`: real read/write against real tables
+  - [ ] `ClaudeInsightEngine`: one real Messages API call
+  - [ ] `GeminiInsightEngine`: one real `generateContent` call
 - [ ] Verify each Ethics-by-Design requirement holds end-to-end with real adapters: consent gating, no raw-text leakage, audit completeness
   - [ ] Fold the "Two Adapters, One Port" artifact into a permanent `artifacts/` doc (e.g. `ai-provider-adapters.md`), matching `cognito-adapter.md`/`dynamodb-adapter.md`'s treatment — currently just a claude.ai Artifact, not yet a repo file
 

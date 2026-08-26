@@ -10,11 +10,18 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.30" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.103.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TuracoChorus.Core\TuracoChorus.Core.csproj" />
     <ProjectReference Include="..\TuracoChorus.Core.Fakes\TuracoChorus.Core.Fakes.csproj" />
+    <ProjectReference Include="..\TuracoChorus.Adapters.Cognito\TuracoChorus.Adapters.Cognito.csproj" />
+    <ProjectReference Include="..\TuracoChorus.Adapters.DynamoDb\TuracoChorus.Adapters.DynamoDb.csproj" />
+    <ProjectReference Include="..\TuracoChorus.Adapters.DynamoDb.Consent\TuracoChorus.Adapters.DynamoDb.Consent.csproj" />
+    <ProjectReference Include="..\TuracoChorus.Adapters.DynamoDb.Audit\TuracoChorus.Adapters.DynamoDb.Audit.csproj" />
+    <ProjectReference Include="..\TuracoChorus.Adapters.Claude\TuracoChorus.Adapters.Claude.csproj" />
+    <ProjectReference Include="..\TuracoChorus.Adapters.Gemini\TuracoChorus.Adapters.Gemini.csproj" />
   </ItemGroup>
 
 </Project>
