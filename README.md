@@ -153,7 +153,7 @@ with entries in the same table.
 | `Claude:Model` | string | no | default `claude-haiku-4-5` |
 | `Claude:BaseUrl` | string | no | default `https://api.anthropic.com` |
 | `Gemini:ApiKey` | string | only if `InsightProvider` is `Gemini` | |
-| `Gemini:Model` | string | no | default `gemini-2.5-flash` |
+| `Gemini:Model` | string | no | default `gemini-3.6-flash` |
 | `Gemini:BaseUrl` | string | no | default `https://generativelanguage.googleapis.com` |
 
 ### Worked example

@@ -32,7 +32,7 @@ public class GeminiInsightEngineOptionsReaderTests
 
         var options = GeminiInsightEngineOptionsReader.Read(config);
 
-        Assert.Equal("gemini-2.5-flash", options.Model);
+        Assert.Equal("gemini-3.6-flash", options.Model);
         Assert.Equal("https://generativelanguage.googleapis.com", options.BaseUrl);
     }
 
