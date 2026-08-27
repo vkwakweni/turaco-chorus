@@ -77,6 +77,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - [ ] End-to-end test: seed sample data in Logger's World's table, hit `/ask` from a fresh deploy, verify response + audit log entry
 - [ ] Write up architecture doc referencing back to the Phase 1 requirements doc, showing requirement → design → implementation → test traceability
 - [ ] Choose a logo
+- [ ] Switch `TuracoChorusConsent`/`TuracoChorusAskAudit`'s DynamoDB `RemovalPolicy` from `DESTROY` (dev-stage default, set while building/testing Phase 3) to `RETAIN` before an official/production deployment
 - [ ] README polish, CI badge
 - [ ] Buffer for whatever slipped
 

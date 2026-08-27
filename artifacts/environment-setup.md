@@ -15,35 +15,37 @@ Points at the upstream application's own Cognito user pool — Turaco Chorus ver
 
 - Config keys used (see `CognitoIdentityVerifierOptions`): `UserPoolId`, `Region`, `AppClientId`, `TokenType`, `UserIdClaim`.
 - `TokenType` is set to `AccessToken` for this deployment — the upstream application's own auth middleware verifies its access token (not id token) and reads `userId` from its `sub` claim, so Turaco Chorus is configured to verify the same token type its clients already hold.
-- Real `UserPoolId`/`Region`/`AppClientId` values: set via user secrets, not recorded here.
+- Real `UserPoolId`/`Region`/`AppClientId` values: set via user secrets — **done**.
 
 ## `ILogDataSource` (DynamoDB)
 
 Read-only access to the upstream application's own table — owned and evolved by that application, not by Turaco Chorus.
 
 - Config shape matches the worked example in `dynamodb-adapter.md`'s per-installer configuration section (PK/SK, entry/lookup sort-key prefixes, one `Lookup`-sourced dimension for category, one `DirectAttribute`-sourced dimension for date).
-- Real `TableName`/region: set via user secrets, not recorded here.
-
-**Known gap:** `dynamodb-adapter.md` specifies this table name should reach config via an SSM Parameter Store export from the upstream application's own CDK stack (cross-stack, no hardcoding/duplication) — that export doesn't exist yet on the upstream side. Until it does, the real table name is supplied manually via user secrets as a stand-in. A development note still needs to be left in the upstream application's own repo to add the export (see "Still open" below — not yet done).
+- Real `TableName` and the rest of the shape: set via user secrets — **done**. Supplied directly, per `dynamodb-adapter.md`'s "Table name configuration" — no SSM export or cross-stack dependency on the upstream's own CDK stack (that mechanism is deferred; see `roadmap.md`'s "Later / Further Development").
 
 ## `IConsentStore` / `IAuditLogger` (DynamoDB, owned by Turaco Chorus)
 
-Two tables (`TuracoChorusConsent`, `TuracoChorusAskAudit`) owned outright by Turaco Chorus's own CDK stack (`infra/lib/infra-stack.ts`) — not yet added as constructs, not yet deployed.
+Two tables (`TuracoChorusConsent`, `TuracoChorusAskAudit`) owned outright by Turaco Chorus's own CDK stack (`infra/lib/infra-stack.ts`) — **deployed**. `RemovalPolicy.DESTROY` for now (dev-stage); switching to `RETAIN` before an official deployment is tracked in `roadmap.md`'s Phase 5.
 
 - Config keys: `TableName` each (see `DynamoDbConsentStoreOptions`/`DynamoDbAskAuditLoggerOptions`).
-- Real table names: set via user secrets once the stack is deployed.
+- Real table names (the CDK-generated physical names): set via user secrets — **done**.
 
 ## `IInsightEngine` (Claude / Gemini)
 
 Config-switchable via an `InsightProvider` key (`Claude` | `Gemini`) — both adapters stay wired in; only the selected one needs a real API key.
 
-- Gemini is the one being set up first (ongoing free tier, no Claude API spend required to run this locally).
-- Real API key: set via user secrets once created in Google AI Studio.
+- Gemini is the one being set up first (ongoing free tier, no Claude API spend required to run this locally). `InsightProvider` is set to `Gemini` — **done**.
+- Real API key: created in Google AI Studio, set via user secrets — **done**.
+
+## End-to-end verification
+
+With every value above set, the app boots cleanly against real adapters (`ASPNETCORE_ENVIRONMENT=Development dotnet run`) and every endpoint was manually exercised successfully against real infrastructure: `GET /stats` (real Cognito verification + real `DynamoDbLogDataSource` query), `GET`/`PUT /consent` (real read/write round-trip against `DynamoDbConsentStore`), and `POST /ask` (two real Gemini calls — range extraction, then answering — plus a real `DynamoDbAskAuditLogger` write). The written audit item confirmed the Ethics-by-Design guarantee holds for real: only aggregated stats reached the AI, never raw entry text.
+
+One bug surfaced and fixed along the way: `GeminiInsightEngineOptions`'s default `Model` (`gemini-2.5-flash`) had been deprecated by Google for new API keys — updated to `gemini-3.6-flash` (the model Google's own error message recommends), with the README and reader test updated to match.
+
+This was a one-off manual verification, not the automated integration test suite — that's still `roadmap.md`'s next item ("Add adapter-level integration tests against real infrastructure").
 
 ## Still open
 
-- [ ] Populate user secrets with the real Cognito/DynamoDB identifiers above
-- [ ] Add the SSM table-name export to the upstream application's own CDK stack (tracked as a dev note in that repo)
-- [ ] Add `TuracoChorusConsent`/`TuracoChorusAskAudit` constructs to `infra/lib/infra-stack.ts` and deploy
-- [ ] Create a Gemini API key and add it to user secrets
 - [ ] Do a mock end-to-end setup against a fictitious upstream schema (e.g. the README's "Acme Habit Tracker" example, not the real upstream this deployment points at) — proves the config system is genuinely installer-agnostic rather than only working because it happens to match the one real deployment it's been tested against so far
