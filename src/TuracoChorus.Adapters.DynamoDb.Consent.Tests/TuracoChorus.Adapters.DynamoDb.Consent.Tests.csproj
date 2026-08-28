@@ -7,6 +7,11 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <!-- Integration tests need real credentials/network (see DynamoDbConsentStoreIntegrationTests.cs), -->
+    <!-- so a plain "dotnet test" excludes them by default. Opt in explicitly with dotnet test's own -->
+    <!-- filter flag set to Category=Integration, which overrides this project default. -->
+    <VSTestTestCaseFilter>Category!=Integration</VSTestTestCaseFilter>
   </PropertyGroup>
 
   <ItemGroup>

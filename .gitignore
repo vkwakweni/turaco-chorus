@@ -20,3 +20,11 @@ artifacts/reference/
 
 # local-dev-only scripts
 scripts/
+
+# integration tests against real infrastructure — working locally, not ready to publish yet
+src/TuracoChorus.Adapters.Cognito.Tests/CognitoIdentityVerifierIntegrationTests.cs
+src/TuracoChorus.Adapters.DynamoDb.Tests/DynamoDbLogDataSourceIntegrationTests.cs
+src/TuracoChorus.Adapters.DynamoDb.Consent.Tests/DynamoDbConsentStoreIntegrationTests.cs
+src/TuracoChorus.Adapters.DynamoDb.Audit.Tests/DynamoDbAskAuditLoggerIntegrationTests.cs
+src/TuracoChorus.Adapters.Claude.Tests/ClaudeInsightEngineIntegrationTests.cs
+src/TuracoChorus.Adapters.Gemini.Tests/GeminiInsightEngineIntegrationTests.cs
