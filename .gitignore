@@ -1,6 +1,6 @@
 # .NET build output
-bin/
-obj/
+src/*/bin/
+src/*/obj/
 
 # .NET user-specific files
 *.user

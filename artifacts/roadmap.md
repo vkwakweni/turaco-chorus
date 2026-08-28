@@ -67,8 +67,8 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 
 ## Phase 4 — Containerization + CI/CD
 
-- [ ] Dockerfile for the .NET service
-- [ ] GitHub Actions pipeline: build → test → lint → Docker build → push to registry (ECR/GHCR)
+- [x] Dockerfile for the .NET service
+- [x] GitHub Actions pipeline: build → test → lint → Docker build → push to registry (ECR/GHCR)
 - [ ] Deploy step to ECS Fargate via the CDK stack from Phase 1
 - [ ] Wire up secrets (Claude API key) via AWS Secrets Manager, injected into the ECS task
 

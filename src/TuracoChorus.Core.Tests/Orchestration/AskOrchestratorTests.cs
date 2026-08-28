@@ -49,7 +49,7 @@ public sealed class AskOrchestratorTests
 
         // Compare the fake object and the result through the orchestrator
         Assert.Same(insightEngine.AnswerToReturn, allowed.Answer);
-        
+
         // Confirms that the extracted date is threaded through the orchestrator correctly
         Assert.Equal(("user-1", (DateOnly?)extractedFrom, (DateOnly?)extractedTo), logDataSource.LastRequest);
     }
