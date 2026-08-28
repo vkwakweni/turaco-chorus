@@ -1,6 +1,6 @@
 ---
 title: Development Phases
-last-updated: 2026-08-26
+last-updated: 2026-08-28
 ---
 
 # Development Phases
@@ -62,8 +62,8 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
   - [x] `DynamoDbConsentStore` and `DynamoDbAskAuditLogger`: real read/write against real tables — verified (consent set/get/revoke round-trip; audit write confirmed via a direct `GetItemAsync`, since `IAuditLogger` is write-only)
   - [x] `ClaudeInsightEngine`: one real Messages API call — written (mirrors the Gemini test exactly); not being tested right now — no Claude API key exists yet (only Gemini's was created), and getting one is deliberately deferred
   - [x] `GeminiInsightEngine`: one real `generateContent` call — verified, using the real key already in user secrets
-- [ ] Verify each Ethics-by-Design requirement holds end-to-end with real adapters: consent gating, no raw-text leakage, audit completeness
-  - [ ] Fold the "Two Adapters, One Port" artifact into a permanent `artifacts/` doc (e.g. `ai-provider-adapters.md`), matching `cognito-adapter.md`/`dynamodb-adapter.md`'s treatment — currently just a claude.ai Artifact, not yet a repo file
+- [x] Verify each Ethics-by-Design requirement holds end-to-end with real adapters: consent gating, no raw-text leakage, audit completeness — see `environment-setup.md`'s "Ethics-by-Design verification (consent-denial path)"
+  - [x] Fold the "Two Adapters, One Port" artifact into a permanent `artifacts/` doc (e.g. `ai-provider-adapters.md`), matching `cognito-adapter.md`/`dynamodb-adapter.md`'s treatment — currently just a claude.ai Artifact, not yet a repo file
 
 ## Phase 4 — Containerization + CI/CD
 

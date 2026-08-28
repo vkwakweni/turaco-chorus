@@ -1,6 +1,6 @@
 ---
 title: Environment Setup Log
-last-updated: 2026-08-26
+last-updated: 2026-08-28
 ---
 
 # Environment Setup Log
@@ -45,6 +45,19 @@ With every value above set, the app boots cleanly against real adapters (`ASPNET
 One bug surfaced and fixed along the way: `GeminiInsightEngineOptions`'s default `Model` (`gemini-2.5-flash`) had been deprecated by Google for new API keys — updated to `gemini-3.6-flash` (the model Google's own error message recommends), with the README and reader test updated to match.
 
 This was a one-off manual verification, not the automated integration test suite — that's still `roadmap.md`'s next item ("Add adapter-level integration tests against real infrastructure").
+
+## Ethics-by-Design verification (consent-denial path)
+
+The run above only exercised `/ask` with consent granted — the denial branch (`ethics-by-design.md`'s Privacy and Accountability requirements) hadn't been exercised against real infrastructure yet. Verified separately, manually, against the same real adapters:
+
+1. `PUT /consent {granted: false}` against the real test user — real `DynamoDbConsentStore` write, confirmed via a follow-up `GET /consent`.
+2. `POST /ask` with consent revoked → `403 Forbidden`, empty body, returned immediately (no Gemini call, no `DynamoDbLogDataSource` query).
+3. Queried the real `TuracoChorusAskAudit` table directly (`aws dynamodb query`) and compared the new item against the granted-path item written during the earlier run:
+   - Denied item: `consentGranted: false`, no `aggregatedDataSent` attribute present at all.
+   - Granted item (from the earlier run): `consentGranted: true`, `aggregatedDataSent` present but containing only `totalEntries`/`dimensions`/`range` — no entry text anywhere in the stored item.
+4. Consent restored to `granted: true` afterwards, returning the test user to its prior state.
+
+This confirms, against real adapters rather than fakes, all three properties `roadmap.md` calls out: **consent gating** (the denial short-circuits before the AI provider or log data source are ever called), **no raw-text leakage** (verified directly from the stored DynamoDB item's shape, not just narrated), and **audit completeness** (both the granted and denied paths produce a record in the real table).
 
 ## Still open
 
