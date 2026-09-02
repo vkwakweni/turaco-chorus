@@ -34,7 +34,7 @@ This keeps "tear down compute" and "tear down data" permanently independent, not
 - One-instance Auto Scaling Group via `cluster.addCapacity()`: `t3.micro`, `EcsOptimizedImage.amazonLinux2()`, public subnet, `associatePublicIpAddress: true`, min/max/desired all `1`. `addCapacity()` creates the ASG and registers it with the cluster (as a managed capacity provider) in one call — no need to wire an `AsgCapacityProvider` by hand.
 - `Ec2TaskDefinition` pulling the existing `turaco-chorus` ECR repository (from `github-oidc-stack.ts`) by tag `latest`.
 - Container port mapping: host `80` → container `8080` (the .NET 8 container image's default HTTP port). Host `80` rather than `8080` so the real URL has no port number in it — `http://turaco.literaturelounge.org`, not `:8080` appended.
-- Security group: inbound `80` from `0.0.0.0/0`; egress open (default).
+- Security group: inbound `80` from the deployer's own IP only (temporary, while identity verification is fake — see "Per-port fake/real split" below); egress open (default).
 - Task role: least-privilege on the three DynamoDB tables the service actually uses — `dynamodb:Query` only on the log data table(s) (read-only, matching `dynamodb-adapter.md`'s documented IAM policy exactly), full read/write on consent and audit (owned by `TuracoChorusStack`). Where each table name comes from is covered next.
 
 ## Per-port fake/real split
@@ -94,6 +94,12 @@ Closes out Phase 4's second checklist item alongside the deploy step, since the 
 - One `secretsmanager.Secret` per deployment, holding the selected AI provider's API key (Gemini for now, per `environment-setup.md`).
 - Granted read access to the task's execution role automatically (CDK grants this when a secret is passed via the container's `secrets` map) — arrives in the container as `Gemini__ApiKey` (or `Claude__ApiKey`), the environment-variable form of the `Gemini:ApiKey`/`Claude:ApiKey` config key the app already reads locally through user secrets.
 - No real key value ever committed: set once, out-of-band, via `aws secretsmanager put-secret-value` (or the console) after the stack deploys the empty secret.
+
+## Deployment configuration (single instance, fixed port)
+
+Found while rotating the real API key into the already-deployed secret (which requires a `--force-new-deployment` to actually reach the running container): the CDK/ECS defaults for a service's rolling deployment assume there's room to run the new and old task briefly side by side (`maxHealthyPercent: 200`, `minHealthyPercent: 50`). With one instance and a fixed host port (`80`), there's nowhere for a second task to go — the deployment got stuck indefinitely (two `deployments` entries, the new one permanently `Pending: 0, Running: 0`), and only resolved once the old task was manually stopped to free the port.
+
+Fixed by setting the `Ec2Service` to stop-then-start instead: `minHealthyPercent: 0`, `maxHealthyPercent: 100`. This means a brief window of real downtime on every deploy (task restarts, service secrets change, etc.) rather than a stuck rollout — an acceptable trade for a single-instance deployment. `AvailabilityZoneRebalancing.ENABLED` (the CDK default) also has to be explicitly set to `DISABLED`, since AWS rejects `maxHealthyPercent <= 100` otherwise — moot anyway for a single-AZ, single-instance service with nothing to rebalance.
 
 ## Setup
 
