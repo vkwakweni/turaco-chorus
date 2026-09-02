@@ -218,6 +218,16 @@ export class TuracoChorusComputeStack extends cdk.Stack {
       cluster,
       taskDefinition,
       desiredCount: 1,
+      // Single instance, fixed host port (80): a rolling start-before-stop deployment (the CDK
+      // default, maxHealthyPercent 200/minHealthyPercent 50) tries to place a second task on the
+      // same instance before stopping the first — impossible here, since the port is already
+      // taken. Stuck this way once already (a forced redeploy sat at 2 in-flight deployments
+      // indefinitely). Stop-then-start instead: brief downtime during a deploy, but never stuck.
+      minHealthyPercent: 0,
+      maxHealthyPercent: 100,
+      // AvailabilityZoneRebalancing.ENABLED (the CDK default) rejects maxHealthyPercent <= 100
+      // outright — a single-instance service has nothing to rebalance across anyway.
+      availabilityZoneRebalancing: ecs.AvailabilityZoneRebalancing.DISABLED,
     });
 
     const hostedZone = new route53.PublicHostedZone(this, 'SubdomainHostedZone', {
