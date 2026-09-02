@@ -18,7 +18,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 | 1 | Requirements & Design (incl. Ethics by Design) + Repo Scaffold | API contract, domain model, interaction flows, Ethics-by-Design requirements doc, repo scaffold |
 | 2 | Core Domain & Application Logic | All five ports + orchestration logic for `/stats`, `/ask`, `/consent`; unit-tested against fakes |
 | 3 | Adapters, Integration & Ethics-by-Design Enforcement | Concrete adapters for all five ports (Cognito, DynamoDB, Claude, consent storage, audit storage), wired in via DI, replacing the fakes |
-| 4 | Containerization + CI/CD | Dockerfile, GitHub Actions pipeline, ECS Fargate deploy |
+| 4 | Containerization + CI/CD | Dockerfile, GitHub Actions pipeline, ECS deploy (EC2 launch type) |
 | 5 | Testing, polish, docs | End-to-end test, requirement-to-test traceability writeup |
 
 **Sequencing logic:** the Ethics-by-Design requirements doc comes first (Phase 1) since it defines what the consent, audit, and data-minimization implementation on Phase 3 must satisfy — implementation without the requirement doc first would risk retrofitting these controls instead of designing for them. Core domain and orchestration logic (Phase 2) come before any concrete adapter (Phase 3), so that all business logic — across all three endpoints — is designed, wired, and unit-tested against fakes first, and only proven-correct logic gets connected to real infrastructure. This also means the two undecided adapters (`IConsentStore`, `IAuditLogger`) don't need a storage decision until Phase 3, once Phase 2's tests have made their real usage concrete.
@@ -69,8 +69,8 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 
 - [x] Dockerfile for the .NET service
 - [x] GitHub Actions pipeline: build → test → lint → Docker build → push to registry (ECR/GHCR)
-- [ ] Deploy step to ECS Fargate via the CDK stack from Phase 1
-- [ ] Wire up secrets (Claude API key) via AWS Secrets Manager, injected into the ECS task
+- [ ] Deploy step to ECS via the CDK stack from Phase 1 — switched from the originally-scoped Fargate to the **EC2 launch type**, since Fargate has no free tier and this account's EC2 free tier runs through 19 Jan 2027; introduces a new `TuracoChorusComputeStack`, kept separate from `TuracoChorusStack`'s DynamoDB tables so tearing down compute never risks table data; also adds a stable Elastic IP and a real subdomain (`turaco.literaturelounge.org`, delegated from Squarespace via NS records) so the deploy doesn't read as a bare-IP demo — see `ecs-deployment.md`. Deliberately **not** wired to any specific upstream application: `IIdentityVerifier`/`ILogDataSource` run fake (new per-port split in `AdapterRegistration.cs`), `IConsentStore`/`IAuditLogger`/`IInsightEngine` stay real — see `ecs-deployment.md`'s "Per-port fake/real split"
+- [ ] Wire up secrets (Gemini/Claude API key) via AWS Secrets Manager, injected into the ECS task — see `ecs-deployment.md`
 
 ## Phase 5 — Testing, polish, docs
 

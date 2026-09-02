@@ -1,0 +1,25 @@
+{
+  "Aws:Region": "us-east-1",
+  "InsightProvider": "Gemini",
+
+  "Cognito:UserPoolId": "us-east-1_ExAmPle123",
+  "Cognito:Region": "us-east-1",
+  "Cognito:AppClientId": "1example23456789abcdefghij",
+  "Cognito:TokenType": "AccessToken",
+
+  "DynamoDb:LogData:TableName": "AcmeHabitEntries",
+  "DynamoDb:LogData:PartitionKeyAttribute": "PK",
+  "DynamoDb:LogData:PartitionKeyValueTemplate": "USER#{sourceId}",
+  "DynamoDb:LogData:SortKeyAttribute": "SK",
+  "DynamoDb:LogData:EntrySortKeyPrefix": "ENTRY#",
+  "DynamoDb:LogData:DateAttribute": "loggedAt",
+  "DynamoDb:LogData:Dimensions:0:Name": "day",
+  "DynamoDb:LogData:Dimensions:0:Type": "Direct",
+  "DynamoDb:LogData:Dimensions:0:AttributeName": "loggedAt",
+  "DynamoDb:LogData:Dimensions:1:Name": "category",
+  "DynamoDb:LogData:Dimensions:1:Type": "Lookup",
+  "DynamoDb:LogData:Dimensions:1:IdAttributeName": "habitTypeId",
+  "DynamoDb:LogData:Dimensions:1:LookupPartitionKeyValueTemplate": "USER#{sourceId}",
+  "DynamoDb:LogData:Dimensions:1:LookupSortKeyValueTemplate": "HABITTYPE#{habitTypeId}",
+  "DynamoDb:LogData:Dimensions:1:LookupNameAttribute": "displayName"
+}

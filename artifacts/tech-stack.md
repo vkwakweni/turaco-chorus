@@ -1,6 +1,6 @@
 ---
 title: Technology Glossary
-last-updated: 2026-08-26
+last-updated: 2026-09-02
 ---
 
 # Tech Stack
@@ -12,10 +12,11 @@ Split in two, to keep what's core clearly separate from what's an adapter — sa
 | Layer | Technology | Notes |
 |---|---|---|
 | Service runtime | .NET 8 Web API | Hosts the core domain/orchestration logic and every adapter; standalone repo, no shared code with whatever service it reads from |
-| Secrets | AWS Secrets Manager | Holds provider credentials (e.g. the Claude API key) outside source control and environment files; injected into the ECS task at runtime |
+| Secrets | AWS Secrets Manager | Holds provider credentials (e.g. the Gemini/Claude API key) outside source control and environment files; injected into the ECS task at runtime — see `ecs-deployment.md` |
 | Containerization | Docker | Packages the .NET service for deployment |
-| Compute | AWS ECS Fargate | Runs the containerized service |
-| Infrastructure as Code | AWS CDK (TypeScript) | Own stack: ECS service, IAM role; audit/consent storage added once Phase 3 picks their adapters |
+| Compute | AWS ECS (EC2 launch type) | Runs the containerized service on a single free-tier-eligible `t3.micro`, not Fargate (no free tier) — see `ecs-deployment.md` |
+| Networking/DNS | Elastic IP + Amazon Route 53 | Static public IP (re-associated to the instance on every ASG replacement) behind a real subdomain, `turaco.literaturelounge.org`, delegated from the domain's actual host (Squarespace) via NS records — see `ecs-deployment.md` |
+| Infrastructure as Code | AWS CDK (TypeScript) | Two stacks: `TuracoChorusStack` (DynamoDB tables) and `TuracoChorusComputeStack` (ECS cluster/ASG/task/secret), kept separate so tearing down compute never risks the tables — see `ecs-deployment.md` |
 | CI/CD | GitHub Actions | Build → test → Docker build → push → deploy |
 | Source control | GitHub | Own repo, own pipeline, own deploy cadence |
 | Testing framework | xUnit | Orchestration unit tests run against hand-written in-memory fakes per port, not a mocking library — see glossary |
@@ -61,7 +62,7 @@ See `roadmap.md`'s Later section for the known, low-probability same-millisecond
 
 * **Amazon Cognito**: Identity provider whose JWTs authenticate every request. `CognitoIdentityVerifier` verifies the token's signature against Cognito's JWKS endpoint and derives `userId` from its `sub` claim — see `domain-interfaces-and-objects.md`'s `IIdentityVerifier`.
 * **Anthropic Claude API**: LLM API used to answer natural-language questions about a user's log data. Called twice per `/ask` request — once to resolve the question's date range, once to produce the answer — both calls carrying a fixed, adapter-supplied system prompt. Only aggregated stats (counts, categories, date ranges) are ever sent to it — never raw log entry text — per the Ethics-by-Design requirements.
-* **AWS ECS Fargate**: Serverless container hosting — runs the Docker image without managing servers. Used here instead of Lambda since the .NET service is a long-running Web API, not a single-invocation function.
+* **AWS ECS (EC2 launch type)**: Runs the Docker image on a single `t3.micro` EC2 instance (free-tier eligible for this account's first 12 months), managed by ECS via an Auto Scaling Group and capacity provider. Used instead of Lambda since the .NET service is a long-running Web API, not a single-invocation function; used instead of Fargate to avoid Fargate's per-second billing with no free tier — see `ecs-deployment.md`.
 * **AWS IAM (least-privilege role)**: Scoped role granting this service read-only access to the upstream service's DynamoDB table and nothing else — the enforced service boundary between the two repos.
 * **AWS SDK for .NET**: Official AWS client library for .NET; used by `DynamoDbLogDataSource` (the `ILogDataSource` adapter) to read — never write — from the upstream service's DynamoDB table.
 * **AWS Secrets Manager**: Stores provider credentials outside source control and environment files; injected into the ECS task at runtime.
