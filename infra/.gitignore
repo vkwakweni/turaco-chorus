@@ -6,3 +6,6 @@ node_modules
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# real installer-specific config for TuracoChorusComputeStack — see ecs-deployment.md
+config/task-environment.local.json

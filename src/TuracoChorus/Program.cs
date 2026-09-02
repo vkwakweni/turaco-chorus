@@ -19,6 +19,12 @@ builder.Services.AddScoped<AskOrchestrator>();
 
 var app = builder.Build();
 
+if (app.Configuration.GetValue<bool>("UseFakeIdentityVerifier")
+    || app.Configuration.GetValue<bool>("UseFakeLogDataSource"))
+{
+    PartialFakeSeedData.Seed(app);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

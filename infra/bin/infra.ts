@@ -1,23 +1,29 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
 import { TuracoChorusStack } from '../lib/infra-stack';
+import { TuracoChorusComputeStack } from '../lib/compute-stack';
 import { GithubOidcStack } from '../lib/github-oidc-stack';
 
 const app = new cdk.App();
-new TuracoChorusStack(app, 'TuracoChorusStack', {
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+// Pinned to a concrete account/region (rather than left environment-agnostic) because
+// TuracoChorusComputeStack below needs to reference this stack's tables across stacks —
+// cross-stack resource references require both stacks to share the same explicit env.
+// This doesn't change actual deploy behaviour: it's only ever been deployed to this one
+// account/region anyway.
+const dataStack = new TuracoChorusStack(app, 'TuracoChorusStack', {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+});
 
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
-
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+// Needs a concrete account/region: Vpc.fromLookup performs a real context lookup against the
+// account at synth time, and can't defer to "deploy anywhere" the way TuracoChorusStack can.
+// Kept as its own stack (not merged into TuracoChorusStack) so tearing down compute — an EC2
+// instance, ASG, ECS cluster — never risks the DynamoDB tables living in the data stack; see
+// artifacts/ecs-deployment.md.
+new TuracoChorusComputeStack(app, 'TuracoChorusComputeStack', {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+  consentTable: dataStack.consentTable,
+  auditTable: dataStack.auditTable,
 });
 
 // Needs a concrete account/region to build the OIDC provider ARN it references;
