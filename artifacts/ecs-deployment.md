@@ -33,7 +33,7 @@ This keeps "tear down compute" and "tear down data" permanently independent, not
 - `ecs.Cluster` over that VPC.
 - One-instance Auto Scaling Group via `cluster.addCapacity()`: `t3.micro`, `EcsOptimizedImage.amazonLinux2()`, public subnet, `associatePublicIpAddress: true`, min/max/desired all `1`. `addCapacity()` creates the ASG and registers it with the cluster (as a managed capacity provider) in one call — no need to wire an `AsgCapacityProvider` by hand.
 - `Ec2TaskDefinition` pulling the existing `turaco-chorus` ECR repository (from `github-oidc-stack.ts`) by tag `latest`.
-- Container port mapping: host `80` → container `8080` (the .NET 8 container image's default HTTP port). Host `80` rather than `8080` so the real URL has no port number in it — `http://turaco.literaturelounge.org`, not `:8080` appended.
+- Container port mapping: host `80` → container `8080` (the .NET 8 container image's default HTTP port). Host `80` rather than `8080` so the real URL has no port number in it — `http://turacochorus.literaturelounge.org`, not `:8080` appended.
 - Security group: inbound `80` from the deployer's own IP only (temporary, while identity verification is fake — see "Per-port fake/real split" below); egress open (default).
 - Task role: least-privilege on the three DynamoDB tables the service actually uses — `dynamodb:Query` only on the log data table(s) (read-only, matching `dynamodb-adapter.md`'s documented IAM policy exactly), full read/write on consent and audit (owned by `TuracoChorusStack`). Where each table name comes from is covered next.
 
@@ -77,12 +77,12 @@ An auto-assigned public IP changes on every instance replacement (patching, ASG 
 Simpler than a lifecycle-hook Lambda for a single, fixed-size-1 ASG — every replacement instance just re-attaches the same address to itself on startup.
 - Instance role: `ec2:AssociateAddress` scoped to that one EIP's allocation ID (plus a necessary `instance/*` wildcard, since the replacement instance's ID isn't known ahead of time); `ec2:DescribeAddresses` stays `*` since that action has no resource-level scoping in IAM at all.
 
-## DNS delegation: `turaco.literaturelounge.org`
+## DNS delegation: `turacochorus.literaturelounge.org`
 
 `literaturelounge.org` is registered and DNS-hosted at Squarespace, not Route 53. Rather than migrating the whole domain, only the `turaco` subdomain gets delegated — every other record Squarespace already serves for `literaturelounge.org` (main site, email, anything else) stays exactly where it is, untouched.
 
-- `route53.PublicHostedZone` for `turaco.literaturelounge.org`, created in the compute stack.
-- One A record inside it: `turaco.literaturelounge.org` → the Elastic IP above.
+- `route53.PublicHostedZone` for `turacochorus.literaturelounge.org`, created in the compute stack.
+- One A record inside it: `turacochorus.literaturelounge.org` → the Elastic IP above.
 - The hosted zone's four assigned nameservers are exposed via `CfnOutput` (`route53.PublicHostedZone` only gets its `ns-*`/`awsdns-*` values at deploy time, not before).
 - **One manual, one-time step outside CDK**: after the first deploy, take those four nameserver values and add them at Squarespace as a custom **NS** record — host `turaco`, one row per nameserver. That's the delegation; everything after it (the A record, IP changes) is managed entirely from the Route 53 side, no further Squarespace changes needed.
 - DNS propagation for a fresh NS delegation can take anywhere from minutes to ~24-48 hours depending on caching along the path — expected, not a sign anything's broken.
