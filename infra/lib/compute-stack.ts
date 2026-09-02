@@ -12,7 +12,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 
 const CONTAINER_PORT = 8080;
 const HOST_PORT = 80;
-const SUBDOMAIN = 'turaco.literaturelounge.org';
+const SUBDOMAIN = 'turacochorus.literaturelounge.org';
 const ECR_REPOSITORY_NAME = 'turaco-chorus';
 
 // Deliberately independent of whichever upstream application would otherwise supply real
@@ -240,7 +240,7 @@ export class TuracoChorusComputeStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'NameServersOutput', {
-      description: `Add these as a custom NS record for host "turaco" at literaturelounge.org's DNS host (Squarespace) — one-time, first deploy only`,
+      description: `Add these as a custom NS record for host "${SUBDOMAIN.split('.')[0]}" at literaturelounge.org's DNS host (Squarespace) — one-time, first deploy only`,
       value: cdk.Fn.join(', ', hostedZone.hostedZoneNameServers!),
     });
 

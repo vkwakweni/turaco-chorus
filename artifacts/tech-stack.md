@@ -15,7 +15,7 @@ Split in two, to keep what's core clearly separate from what's an adapter — sa
 | Secrets | AWS Secrets Manager | Holds provider credentials (e.g. the Gemini/Claude API key) outside source control and environment files; injected into the ECS task at runtime — see `ecs-deployment.md` |
 | Containerization | Docker | Packages the .NET service for deployment |
 | Compute | AWS ECS (EC2 launch type) | Runs the containerized service on a single free-tier-eligible `t3.micro`, not Fargate (no free tier) — see `ecs-deployment.md` |
-| Networking/DNS | Elastic IP + Amazon Route 53 | Static public IP (re-associated to the instance on every ASG replacement) behind a real subdomain, `turaco.literaturelounge.org`, delegated from the domain's actual host (Squarespace) via NS records — see `ecs-deployment.md` |
+| Networking/DNS | Elastic IP + Amazon Route 53 | Static public IP (re-associated to the instance on every ASG replacement) behind a real subdomain, `turacochorus.literaturelounge.org`, delegated from the domain's actual host (Squarespace) via NS records — see `ecs-deployment.md` |
 | Infrastructure as Code | AWS CDK (TypeScript) | Two stacks: `TuracoChorusStack` (DynamoDB tables) and `TuracoChorusComputeStack` (ECS cluster/ASG/task/secret), kept separate so tearing down compute never risks the tables — see `ecs-deployment.md` |
 | CI/CD | GitHub Actions | Build → test → Docker build → push → deploy |
 | Source control | GitHub | Own repo, own pipeline, own deploy cadence |
