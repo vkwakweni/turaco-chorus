@@ -152,7 +152,7 @@ export class TuracoChorusComputeStack extends cdk.Stack {
 
     const autoScalingGroup = cluster.addCapacity('CapacityProvider', {
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-      machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+      machineImage: ecs.EcsOptimizedImage.amazonLinux2023(),
       minCapacity: 1,
       maxCapacity: 1,
       desiredCapacity: 1,

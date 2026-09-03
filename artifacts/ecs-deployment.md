@@ -100,6 +100,7 @@ An auto-assigned public IP changes on every instance replacement (patching, ASG 
 - Reassociation on boot, not a separate Lambda/lifecycle hook: the instance's user data calls the AWS CLI (`aws ec2 associate-address --instance-id <self, via instance metadata> --allocation-id <eip-alloc-id> --region af-south-1`) using its own instance role.
 Simpler than a lifecycle-hook Lambda for a single, fixed-size-1 ASG — every replacement instance just re-attaches the same address to itself on startup.
 - Instance role: `ec2:AssociateAddress` scoped to that one EIP's allocation ID (plus a necessary `instance/*` wildcard, since the replacement instance's ID isn't known ahead of time); `ec2:DescribeAddresses` stays `*` since that action has no resource-level scoping in IAM at all.
+- Machine image is `EcsOptimizedImage.amazonLinux2023()`, not `amazonLinux2()` — found live: AL2's ECS-optimized AMI doesn't ship the AWS CLI at all, so the `associate-address` call silently failed at boot (`aws: command not found`, buried in cloud-init's user-data output), the instance kept only its own auto-assigned public IP, and the Elastic IP — what DNS actually resolves to — was left permanently unassociated with any running instance. Silent and easy to miss: ECS/CloudFormation both reported the deploy as healthy throughout, since nothing about task placement or service stability depends on the EIP. AL2023 ships AWS CLI v2 pre-installed, closing the gap without adding an install step to user data.
 
 ## DNS delegation: `turacochorus.literaturelounge.org`
 
