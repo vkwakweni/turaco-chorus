@@ -9,19 +9,17 @@ export class TuracoChorusStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // TODO: switch to RemovalPolicy.RETAIN before an official/production deployment —
-    // DESTROY is only appropriate while there's no real user data in these tables yet.
     this.consentTable = new dynamodb.Table(this, 'TuracoChorusConsent', {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     this.auditTable = new dynamodb.Table(this, 'TuracoChorusAskAudit', {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'timestamp', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     new cdk.CfnOutput(this, 'ConsentTableNameOutput', {
