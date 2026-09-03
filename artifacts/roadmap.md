@@ -75,7 +75,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 ## Phase 5 — Testing, polish, docs
 
 - [x] End-to-end test: seed sample data in Logger's World's table, hit `/ask` from a fresh deploy, verify response + audit log entry — re-scoped to stay independent of Logger's World; verified against the live deployment with the seeded `demo-user` (real Gemini answer, real audit write, no raw text)
-- [ ] Write up architecture doc referencing back to the Phase 1 requirements doc, showing requirement → design → implementation → test traceability
+- [x] Write up architecture doc referencing back to the Phase 1 requirements doc, showing requirement → design → implementation → test traceability — see `architecture.md`
 - [ ] Choose a logo
 - [ ] Switch `TuracoChorusConsent`/`TuracoChorusAskAudit`'s DynamoDB `RemovalPolicy` from `DESTROY` (dev-stage default, set while building/testing Phase 3) to `RETAIN` before an official/production deployment
 - [ ] README polish, CI badge
