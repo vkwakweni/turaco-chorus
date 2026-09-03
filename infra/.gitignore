@@ -9,3 +9,4 @@ cdk.out
 
 # real installer-specific config for TuracoChorusComputeStack — see ecs-deployment.md
 config/task-environment.local.json
+config/allowed-ingress.local.json

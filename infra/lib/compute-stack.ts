@@ -24,11 +24,36 @@ const USE_FAKE_IDENTITY_VERIFIER = true;
 const USE_FAKE_LOG_DATA_SOURCE = true;
 const FAKE_TEST_USER_ID = 'demo-user';
 
-// Restricts inbound traffic to just this one IP while identity verification is fake, since a
-// fake verifier's registry (see PartialFakeSeedData) accepts only one known test credential —
-// not a real per-user Cognito check. Widen to ec2.Peer.anyIpv4() once USE_FAKE_IDENTITY_VERIFIER
-// is false and real Cognito verification is in place.
-const TEMPORARY_ALLOWED_INGRESS_CIDR = '197.184.70.18/32';
+/**
+ * Restricts inbound traffic to a small allow-list while identity verification is fake, since a
+ * fake verifier's registry (see PartialFakeSeedData) accepts only one known test credential —
+ * not a real per-user Cognito check.
+ *
+ * The prefix list itself is created *once*, outside CDK — see ecs-deployment.md's "IP allow-list"
+ * — and only ever referenced here by ID via `fromPrefixListId` (a pure lookup, no `entries` prop).
+ * If CDK declared the entries, any unrelated future `cdk deploy` would silently revert a quick
+ * `aws ec2 modify-managed-prefix-list` update back to whatever's in this file — the whole point
+ * of the prefix list (update the IP without touching code or redeploying) would only hold until
+ * the next deploy. Reading it by ID avoids that entirely: CloudFormation never manages this
+ * resource's membership, so nothing here can ever drift or get reverted.
+ *
+ * The ID itself is real-account-specific, so it comes from the same local, gitignored config
+ * mechanism as the Cognito/LogData values (see "Installer config" below) — never hardcoded here.
+ */
+function readAllowedIngressPrefixListId(): string {
+  const configPath = path.join(__dirname, '..', 'config', 'allowed-ingress.local.json');
+
+  if (!fs.existsSync(configPath)) {
+    throw new Error(
+      `Missing ${configPath}. Create it (see config/allowed-ingress.example.json) with the ` +
+      'id of a managed prefix list created via `aws ec2 create-managed-prefix-list` ' +
+      '(see artifacts/ecs-deployment.md) before deploying TuracoChorusComputeStack.',
+    );
+  }
+
+  const { prefixListId } = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  return prefixListId;
+}
 
 export interface TuracoChorusComputeStackProps extends cdk.StackProps {
   readonly consentTable: dynamodb.Table;
@@ -109,14 +134,20 @@ export class TuracoChorusComputeStack extends cdk.Stack {
     // via user data rather than through a separate Lambda/lifecycle hook.
     const eip = new ec2.CfnEIP(this, 'ServiceEip');
 
+    const allowedIngressPrefixList = ec2.PrefixList.fromPrefixListId(
+      this,
+      'AllowedIngressPrefixList',
+      readAllowedIngressPrefixListId(),
+    );
+
     const instanceSecurityGroup = new ec2.SecurityGroup(this, 'InstanceSecurityGroup', {
       vpc,
       description: 'Turaco Chorus EC2 instance - inbound app port only',
     });
     instanceSecurityGroup.addIngressRule(
-      ec2.Peer.ipv4(TEMPORARY_ALLOWED_INGRESS_CIDR),
+      allowedIngressPrefixList,
       ec2.Port.tcp(HOST_PORT),
-      'Allow inbound app traffic from the deployer only, while identity verification is fake',
+      'Allow inbound app traffic from the allow-list only, while identity verification is fake',
     );
 
     const autoScalingGroup = cluster.addCapacity('CapacityProvider', {
@@ -250,6 +281,11 @@ export class TuracoChorusComputeStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'ElasticIpOutput', {
       value: eip.ref,
+    });
+
+    new cdk.CfnOutput(this, 'AllowedIngressPrefixListIdOutput', {
+      description: 'Update the IP allow-list without touching code or redeploying: aws ec2 get-managed-prefix-list-entries --prefix-list-id <this-id>, then modify-managed-prefix-list with --add-entries/--remove-entries',
+      value: allowedIngressPrefixList.prefixListId,
     });
 
     if (fakeTestCredentialSecret) {
