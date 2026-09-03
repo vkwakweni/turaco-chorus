@@ -1,3 +1,5 @@
+<img src="assets/logo.svg" alt="Turaco Chorus logo" width="96" height="96">
+
 # Turaco Chorus
 
 Turaco Chorus is a companion .NET 8 service that lets users ask natural-language questions about their own log data — answered by the Anthropic Claude API, grounded only in aggregated stats, never raw entry text. It's a Ports-and-Adapters (Hexagonal Architecture) portfolio project, built as a live demonstration of Ethics by Design: consent, data minimisation, and audit logging aren't bolted on after the AI feature works — they're the requirements the feature is built to satisfy.
