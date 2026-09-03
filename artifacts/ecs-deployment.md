@@ -34,7 +34,7 @@ This keeps "tear down compute" and "tear down data" permanently independent, not
 - One-instance Auto Scaling Group via `cluster.addCapacity()`: `t3.micro`, `EcsOptimizedImage.amazonLinux2()`, public subnet, `associatePublicIpAddress: true`, min/max/desired all `1`. `addCapacity()` creates the ASG and registers it with the cluster (as a managed capacity provider) in one call — no need to wire an `AsgCapacityProvider` by hand.
 - `Ec2TaskDefinition` pulling the existing `turaco-chorus` ECR repository (from `github-oidc-stack.ts`) by tag `latest`.
 - Container port mapping: host `80` → container `8080` (the .NET 8 container image's default HTTP port). Host `80` rather than `8080` so the real URL has no port number in it — `http://turacochorus.literaturelounge.org`, not `:8080` appended.
-- Security group: inbound `80` from the deployer's own IP only (temporary, while identity verification is fake — see "Per-port fake/real split" below); egress open (default).
+- Security group: inbound `80` from a small managed-prefix-list allow-list only (temporary, while identity verification is fake — see "IP allow-list" and "Per-port fake/real split" below); egress open (default).
 - Task role: least-privilege on the three DynamoDB tables the service actually uses — `dynamodb:Query` only on the log data table(s) (read-only, matching `dynamodb-adapter.md`'s documented IAM policy exactly), full read/write on consent and audit (owned by `TuracoChorusStack`). Where each table name comes from is covered next.
 
 ## Per-port fake/real split
@@ -53,9 +53,33 @@ aws secretsmanager get-secret-value --secret-id <FakeAuthTestCredentialSecretArn
 ```
 Use it as `Authorization: Bearer <value>`; the test user id is the fixed constant `demo-user`.
 
-**Network-level backstop**: since a fake identity verifier is a known single credential rather than real per-user verification, the security group's inbound rule is temporarily restricted to the deployer's own IP (`TEMPORARY_ALLOWED_INGRESS_CIDR`) instead of `0.0.0.0/0` — belt-and-suspenders on top of the credential itself being unguessable. Widen back to `ec2.Peer.anyIpv4()` once `USE_FAKE_IDENTITY_VERIFIER` flips to `false` alongside a real Cognito pool.
+**Network-level backstop**: since a fake identity verifier is a known single credential rather than real per-user verification, the security group's inbound rule is temporarily restricted to a small IP allow-list instead of `0.0.0.0/0` — belt-and-suspenders on top of the credential itself being unguessable. Widen to `ec2.Peer.anyIpv4()` once `USE_FAKE_IDENTITY_VERIFIER` flips to `false` alongside a real Cognito pool.
 
 **Reversing this later**: flipping `USE_FAKE_IDENTITY_VERIFIER`/`USE_FAKE_LOG_DATA_SOURCE` to `false` (once there's a real upstream worth wiring in, Logger's World or otherwise) automatically restores the excluded Cognito/LogData config and the IAM grant — nothing else in the stack needs to change.
+
+## IP allow-list (managed prefix list, referenced not managed)
+
+A home IP isn't stable — it changed within the first day of this deployment (ISP reassignment). The security group's inbound rule points at an AWS **managed prefix list**, a named, independently-editable collection of CIDRs, rather than a literal CIDR on the rule itself.
+
+The important design point: `compute-stack.ts` only ever **references** this prefix list by ID (`ec2.PrefixList.fromPrefixListId(...)`) — it never declares the list's `entries` as a CDK-managed property. If CDK owned the entries, any *unrelated* future `cdk deploy` would silently revert a quick CLI-made IP change back to whatever's in the template — the entire point of "update it without touching code" would only hold until the next deploy. Reading it by ID sidesteps that: CloudFormation never manages this resource's membership, so nothing here can drift or get reverted, ever.
+
+- The prefix list is created **once**, directly via the AWS CLI, not by CDK:
+  ```
+  aws ec2 create-managed-prefix-list --region af-south-1 \
+    --prefix-list-name "turaco-chorus-allowed-ingress" \
+    --address-family IPv4 --max-entries 5 \
+    --entries "Cidr=<ip>/32,Description=<label>"
+  ```
+- Its ID is real-account-specific, so — same rule as the Cognito/LogData values below — it isn't hardcoded in `compute-stack.ts`. It lives in `infra/config/allowed-ingress.local.json` (gitignored; `allowed-ingress.example.json` is the committed template), read at synth time via the same fail-fast-if-missing pattern as `task-environment.local.json`.
+- **Updating the allowed IP** (the actual point of all this): no code, no CDK, no redeploy — ever:
+  ```
+  aws ec2 get-managed-prefix-list-entries --prefix-list-id <id> --region af-south-1
+  aws ec2 modify-managed-prefix-list --region af-south-1 --prefix-list-id <id> \
+    --current-version <version-from-above> \
+    --add-entries Cidr=<new-ip>/32,Description=<label> \
+    --remove-entries Cidr=<old-ip>/32
+  ```
+- `maxEntries: 5` leaves headroom for a second location's IP later without needing to recreate the list.
 
 ## Installer config (Cognito, upstream table shape)
 
