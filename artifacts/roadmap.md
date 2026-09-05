@@ -78,7 +78,8 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - [x] Write up architecture doc referencing back to the Phase 1 requirements doc, showing requirement → design → implementation → test traceability — see `architecture.md`
 - [x] Choose a logo — placeholder for now, `assets/logo.svg`, wired into `README.md`; may be revisited for a final design later
 - [x] Switch `TuracoChorusConsent`/`TuracoChorusAskAudit`'s DynamoDB `RemovalPolicy` from `DESTROY` (dev-stage default, set while building/testing Phase 3) to `RETAIN` before an official/production deployment — deployed live, metadata-only change, no downtime
-- [ ] README polish, CI badge
+- [x] README polish — rewritten as an installation guide: concept, installation (running the container, wiring it into your app, configuration, local development, deploying), architecture
+- [ ] CI badge
 - [ ] Buffer for whatever slipped
 
 ## Later / Further Development
