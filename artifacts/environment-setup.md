@@ -26,7 +26,7 @@ Read-only access to the upstream application's own table — owned and evolved b
 
 ## `IConsentStore` / `IAuditLogger` (DynamoDB, owned by Turaco Chorus)
 
-Two tables (`TuracoChorusConsent`, `TuracoChorusAskAudit`) owned outright by Turaco Chorus's own CDK stack (`infra/lib/infra-stack.ts`) — **deployed**. `RemovalPolicy.DESTROY` for now (dev-stage); switching to `RETAIN` before an official deployment is tracked in `roadmap.md`'s Phase 5.
+Two tables (`TuracoChorusConsent`, `TuracoChorusAskAudit`) owned outright by Turaco Chorus's own CDK stack (`infra/lib/infra-stack.ts`) — **deployed**. `RemovalPolicy.RETAIN` since Phase 5 (switched from the dev-stage `DESTROY` default ahead of the official deployment — deployed live, metadata-only change, no downtime).
 
 - Config keys: `TableName` each (see `DynamoDbConsentStoreOptions`/`DynamoDbAskAuditLoggerOptions`).
 - Real table names (the CDK-generated physical names): set via user secrets — **done**.
