@@ -1,6 +1,6 @@
 ---
 title: AI Provider Adapters
-last-updated: 2026-08-28
+last-updated: 2026-09-06
 ---
 
 # AI Provider Adapters
@@ -28,7 +28,7 @@ Rather than block on Claude credits, both adapters were built side by side — e
 | Default model | `claude-haiku-4-5` | `gemini-3.6-flash` |
 | Structured output | Prompt-instructed JSON, defensively parsed (strips a markdown fence if the model adds one anyway) | Native — `generationConfig.responseMimeType: "application/json"` forces it; same defensive parser kept anyway |
 | Free tier | None ongoing — a one-time ≈$5 trial credit | Ongoing, no card required |
-| System prompts | Word-for-word identical between both adapters — same Ethics-by-Design constraints (neutral fact-reporting, no recommendations), same generic-dimension wording, same JSON contract for both `ExtractRangeAsync` and `AskAsync` | |
+| System prompts | Word-for-word identical between both adapters — same Ethics-by-Design constraints (neutral fact-reporting, no recommendations), same generic-dimension wording, same JSON contract for both `ExtractRangeAsync` and `AskAsync`. Enforced by `PromptSymmetryTests` (`TuracoChorus.Tests`), not just a point-in-time claim | |
 
 ## One shared shape
 
