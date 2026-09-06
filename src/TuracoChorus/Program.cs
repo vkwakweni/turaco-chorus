@@ -111,7 +111,11 @@ app.MapPost("/ask", async (
                 allowed.Answer.DataUsed.StatsQueried,
                 new DateRangeResponse(allowed.Answer.DataUsed.Range.From, allowed.Answer.DataUsed.Range.To)))),
         AskDenied => Results.StatusCode(StatusCodes.Status403Forbidden),
-        _ => Results.Problem("Unexpected AskResult type.")
+        // AskAllowed/AskDenied are AskResult's only subtypes (both sealed) — this arm is
+        // unreachable in practice. Throwing instead of a bespoke response lets it fall through
+        // the same global exception handler as any other unhandled error, matching the
+        // documented `{ "error" }` 500 shape rather than ASP.NET's default Problem+JSON.
+        _ => throw new InvalidOperationException($"Unexpected AskResult subtype: {result.GetType()}")
     };
 });
 
