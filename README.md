@@ -31,11 +31,13 @@ Each stage is independent; skip ahead if you already know which one you need.
 
 ### Running the container
 
-However you host it, the service is a plain Docker image built from the repo's `Dockerfile`:
+However you host it, the service is a plain Docker image built from the repo's `Dockerfile`. There's no published image anywhere (no Docker Hub, no public registry) — the `Dockerfile` builds straight from source, so you need this repo cloned locally first:
 
-1. Build the image:
+1. Clone the repo and build the image from it:
 
    ```bash
+   git clone https://github.com/vkwakweni/turaco-chorus.git
+   cd turaco-chorus
    docker build -t turaco-chorus .
    ```
 
@@ -75,7 +77,22 @@ However you host it, the service is a plain Docker image built from the repo's `
      turaco-chorus
    ```
 
-   Skip this step entirely if the container runs on AWS compute with an IAM role already attached (an EC2 instance profile, or an ECS task role) — the AWS SDK inside picks that up automatically, with nothing to pass in. This project's own deployment does exactly that; see `taskDefinition.taskRole` in `infra/lib/compute-stack.ts` for a real, working example.
+3. Confirm it's running. The `docker run` command above has no `-d` flag, so it runs in the foreground and prints the container's own console output straight to your terminal — that's the app's startup log, not something separate you need to go looking for. A clean start looks like this:
+
+   ```
+   info: Microsoft.Hosting.Lifetime[14]
+         Now listening on: http://[::]:8080
+   info: Microsoft.Hosting.Lifetime[0]
+         Application started. Press Ctrl+C to shut down.
+   ```
+
+   From another terminal, a request with no `Authorization` header should get a real `401` — not a connection error — confirming the server is actually up and enforcing auth, not just that the process started:
+
+   ```bash
+   curl -i http://localhost:8080/stats
+   ```
+
+   If you ran it detached (`docker run -d ...`), check the same log lines with `docker logs <container-name>` instead of watching the foreground output.
 
 ### Wiring it into your app
 
