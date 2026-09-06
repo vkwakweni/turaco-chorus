@@ -1,6 +1,6 @@
 ---
 title: Technology Glossary
-last-updated: 2026-09-02
+last-updated: 2026-09-06
 ---
 
 # Tech Stack
@@ -31,32 +31,12 @@ One row per adapter, grouped by the port it implements; see port definitions in 
 | `ILogDataSource` | `DynamoDbLogDataSource` | AWS SDK for .NET (DynamoDB) + AWS IAM (least-privilege role) | Read-only access to the upstream service's own DynamoDB table; table name/ARN supplied directly via config (user secrets/environment variables), same as every other adapter setting: no cross-stack dependency on the upstream's own CDK stack. Item-shape mapping is config-driven, not installer-specific adapter code — see `dynamodb-adapter.md` |
 | `IInsightEngine` | `ClaudeInsightEngine` | Anthropic Claude API (Messages API) | Called twice per `/ask` request — range extraction, then answering — both calls carrying a fixed, adapter-supplied system prompt. Structured JSON output via prompt instruction, defensively parsed (strips a markdown fence if the model adds one anyway) |
 | `IInsightEngine` | `GeminiInsightEngine` | Google Gemini API (`generateContent`) | Same contract as `ClaudeInsightEngine`, word-for-word identical system prompts — swappable behind the same port. Structured output enforced natively via `responseMimeType: "application/json"`. Google's free tier is ongoing (unlike Claude's one-time trial credit), so this is the adapter usable without any Claude API spend |
-| `IConsentStore` | `DynamoDbConsentStore` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusConsent`), PK `userId` only — one row per user, overwritten on every consent change |
-| `IAuditLogger` | `DynamoDbAskAuditLogger` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusAskAudit`), PK `userId` + SK `timestamp` (ISO-8601, millisecond precision) — append-only, one row per `/ask` call |
+| `IConsentStore` | `DynamoDbConsentStore` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusConsent`), PK `userId` only — one row per user, overwritten on every consent change — see `dynamodb-adapter.md` |
+| `IAuditLogger` | `DynamoDbAskAuditLogger` | AWS SDK for .NET (DynamoDB) | Own table (construct id `TuracoChorusAskAudit`), PK `userId` + SK `timestamp` (ISO-8601, millisecond precision) — append-only, one row per `/ask` call — see `dynamodb-adapter.md` |
 
 ## Storage schemas
 
-Item-level shape for the two tables Turaco Chorus owns outright (`ILogDataSource`'s table belongs to the upstream application, so it isn't Turaco Chorus's schema to define). DynamoDB items only enforce the key attributes (PK, SK); every other attribute is present-or-absent per item, not a fixed column set.
-
-**`TuracoChorusConsent`** — one row per user, written only once a decision is made; no row means never decided. Overwritten in place on every subsequent change.
-
-```
-PK  userId           (S)
-    granted          (BOOL)
-    grantedAt        (S, ISO-8601 timestamp)
-```
-
-**`TuracoChorusAskAudit`** — append-only, one row per `/ask` call.
-
-```
-PK  userId           (S)
-SK  timestamp          (S, ISO-8601, millisecond precision)
-    queryText           (S)
-    consentGranted       (BOOL)
-    aggregatedDataSent    (M, nested `AggregateStats` — attribute omitted when null, i.e. on the consent-denied path)
-```
-
-See `roadmap.md`'s Later section for the known, low-probability same-millisecond collision limitation on `TuracoChorusAskAudit`'s sort key.
+Item-level shape for the two tables Turaco Chorus owns outright (`ILogDataSource`'s table belongs to the upstream application, so it isn't Turaco Chorus's schema to define) — see [`dynamodb-adapter.md`](dynamodb-adapter.md)'s `DynamoDbConsentStore`/`DynamoDbAskAuditLogger` sections for both.
 
 ## Tech glossary
 
