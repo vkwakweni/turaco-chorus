@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/vkwakweni/turaco-chorus/actions/workflows/ci.yml"><img src="https://github.com/vkwakweni/turaco-chorus/actions/workflows/ci.yml/badge.svg" alt="CI/CD"></a>
-  <a href="artifacts/roadmap.md"><img src="https://img.shields.io/badge/phase-5_testing_%26_polish-blue?style=flat-square" alt="Phase"></a>
+  <a href="https://github.com/vkwakweni/turaco-chorus/actions/workflows/ci.yml"><img src="https://github.com/vkwakweni/turaco-chorus/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI/CD"></a>
+  <a href="http://turacochorus.literaturelounge.org"><img src="https://img.shields.io/badge/deployed-live-brightgreen?style=flat-square" alt="Deployed"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-lightgrey?style=flat-square" alt="License"></a>
 </p>
 
@@ -33,7 +33,7 @@ Full design docs live under:
 - [`ethics-by-design.md`](artifacts/ethics-by-design.md) (the EbD-AI requirements)
 - [`tech-stack.md`](artifacts/tech-stack.md) (technology choices, split core vs. adapters)
 - [`ecs-deployment.md`](artifacts/ecs-deployment.md) (how it's actually deployed)
-- and [`roadmap.md`](artifacts/roadmap.md) (the phased build plan — currently Phase 5).
+- and [`roadmap.md`](artifacts/roadmap.md) (the phased build plan — deployed and live).
 
 ## Installation
 

@@ -242,7 +242,7 @@ export class TuracoChorusComputeStack extends cdk.Stack {
       }));
     }
 
-    new ecs.Ec2Service(this, 'Service', {
+    const service = new ecs.Ec2Service(this, 'Service', {
       cluster,
       taskDefinition,
       desiredCount: 1,
@@ -275,6 +275,16 @@ export class TuracoChorusComputeStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'ElasticIpOutput', {
       value: eip.ref,
+    });
+
+    // For CI's `aws ecs update-service`/`wait services-stable` (see github-oidc-stack.ts and
+    // ecs-deployment.md) — saves re-deriving these via `aws ecs list-services` by hand.
+    new cdk.CfnOutput(this, 'ClusterArnOutput', {
+      value: cluster.clusterArn,
+    });
+
+    new cdk.CfnOutput(this, 'ServiceNameOutput', {
+      value: service.serviceName,
     });
 
     new cdk.CfnOutput(this, 'AllowedIngressPrefixListIdOutput', {
