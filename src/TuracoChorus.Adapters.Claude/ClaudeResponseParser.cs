@@ -5,6 +5,9 @@ using TuracoChorus.Core.Models;
 using TuracoChorus.Core.Ports;
 
 [assembly: InternalsVisibleTo("TuracoChorus.Adapters.Claude.Tests")]
+// Lets TuracoChorus.Tests assert ClaudePrompts/GeminiPrompts stay identical (PromptSymmetryTests) —
+// the only reason this internal type needs visibility outside its own adapter's test project.
+[assembly: InternalsVisibleTo("TuracoChorus.Tests")]
 
 namespace TuracoChorus.Adapters.Claude;
 

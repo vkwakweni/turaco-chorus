@@ -85,7 +85,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
     - [x] Add Consent and Audit schema sections to `dynamodb-adapter.md`: restructured the doc into three labelled top-level sections (`DynamoDbLogDataSource`, `DynamoDbConsentStore`, `DynamoDbAskAuditLogger`), moved the Consent/Audit schemas over from `tech-stack.md`, and cross-referenced both directions
     - [x] Document `ExtractRangeAsync`'s parse-failure fallback: added to `domain-interfaces-and-objects.md`'s `IInsightEngine` section — both adapters fall back to an open-ended `RequestedRange(null, null)` on a refused, blocked, or unparseable range-extraction call, keeping "`ExtractRangeAsync` always succeeds" true
     - [x] Fixed the shape of `Program.cs`'s unreachable branch: `_ => Results.Problem(...)` now `throw`s instead, so the (unreachable) case falls through the global exception handler and matches the documented `{ "error" }` 500 shape rather than Problem+JSON. `dotnet build`/`test`/`format --verify-no-changes` all clean
-    - [ ] Add a test asserting Claude's and Gemini's system prompts stay byte-identical: true today (verified by diff), backing the "genuinely interchangeable" claim in `ai-provider-adapters.md`, but nothing currently catches a future one-sided edit
+    - [x] Added `PromptSymmetryTests` (`TuracoChorus.Tests`), asserting `ClaudePrompts`/`GeminiPrompts` stay byte-identical — both adapter assemblies now grant `InternalsVisibleTo("TuracoChorus.Tests")` alongside their own test project, the only reason for the extra visibility
 - [ ] CI badge
 
 ## Later / Further Development
