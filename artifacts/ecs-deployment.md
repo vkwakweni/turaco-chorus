@@ -129,6 +129,25 @@ Found while rotating the real API key into the already-deployed secret (which re
 
 Fixed by setting the `Ec2Service` to stop-then-start instead: `minHealthyPercent: 0`, `maxHealthyPercent: 100`. This means a brief window of real downtime on every deploy (task restarts, service secrets change, etc.) rather than a stuck rollout — an acceptable trade for a single-instance deployment. `AvailabilityZoneRebalancing.ENABLED` (the CDK default) also has to be explicitly set to `DISABLED`, since AWS rejects `maxHealthyPercent <= 100` otherwise — moot anyway for a single-AZ, single-instance service with nothing to rebalance.
 
+## CI-triggered deploy (planned)
+
+Not implemented yet — tracked as a sub-item under Phase 5's buffer in `roadmap.md`. Written up here ahead of doing it so the path is settled before touching live IAM or the pipeline.
+
+Right now, `ci.yml`'s `build-and-push` job (gated to `push` on `main` only) builds and pushes a new image to ECR on every merge, but nothing tells the running service to pick it up — that's still the manual `--force-new-deployment` step described above. `tech-stack.md` currently claims GitHub Actions "triggers the ECS deploy"; today that's false. This section is the path to make it true.
+
+**What's already there to build on:**
+- The `build-and-push` job's `if: github.event_name == 'push' && github.ref == 'refs/heads/main'` gate already is "after a merge to main" — no new trust boundary needed.
+- The deploy role (`github-actions-turaco-chorus-deploy`, in `github-oidc-stack.ts`) already exists and is already OIDC-trusted only for `ref:refs/heads/main` — it just doesn't hold any ECS permissions yet, only ECR push.
+- The live cluster and service have CDK-auto-generated names (`TuracoChorusComputeStack-ClusterEB0386A7-...` / `...-ServiceD69D759B-...`, from `aws ecs list-services`) since neither `clusterName` nor `serviceName` is set in `compute-stack.ts`. Giving them clean explicit names now would force CloudFormation to *replace* the live cluster and service — real downtime for a cosmetic win. The plan below references the existing generated ARN as-is, the same way `ci.yml` already hardcodes the deploy role's ARN and region.
+
+**The four steps:**
+1. `github-oidc-stack.ts` — add a policy statement to `deployRole`: `ecs:UpdateService` + `ecs:DescribeServices`, resource-scoped to that one service ARN only (never `*`, never the whole cluster). Requires one `cdk deploy` of `TuracoChorusGithubOidcStack` — IAM-only, no downtime by itself.
+2. `compute-stack.ts` — add two `CfnOutput`s (cluster ARN, service name). Purely additive, no resource replacement, no downtime — so the next lookup doesn't need another `aws ecs list-services` dig.
+3. `ci.yml` — add a `deploy` job after `build-and-push`, same `push`-to-`main` gate, reusing the same role: `aws ecs update-service --cluster <arn> --service <name> --force-new-deployment --region af-south-1`, then `aws ecs wait services-stable` so the job doesn't go green until the new task is actually healthy.
+4. Once live, correct the record: `tech-stack.md`'s CI/CD line stays as-is (it becomes true instead of needing a fix), and this doc's "Deployment configuration" section above gets a note that the `--force-new-deployment` step is now automatic rather than manual.
+
+**The trade-off to accept going in:** every merge to main will then automatically bounce the live container. Per "Deployment configuration" above (`minHealthyPercent: 0`), that's a genuine stop-then-start — a real, brief outage on every merge, not a rolling zero-downtime deploy. Worth deciding deliberately, not inheriting as a side effect of wiring the pipeline up.
+
 ## Setup
 
 ```
