@@ -5,11 +5,14 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 
 const GITHUB_REPO = 'vkwakweni/turaco-chorus';
 
-// Lets GitHub Actions assume an AWS role via OIDC (short-lived credentials per
-// workflow run) instead of storing long-lived AWS access keys as repo secrets.
-// References the GitHub OIDC provider already registered in this account by
-// loggers-world's own GithubOidcStack — IAM only allows one provider per
-// issuer URL per account, so this stack must not declare a second one.
+// CDK-auto-generated names — setting explicit ones would force CloudFormation to replace the
+// live cluster/service. Re-derive via `aws ecs list-services` if they're ever recreated.
+const ECS_CLUSTER_NAME = 'TuracoChorusComputeStack-ClusterEB0386A7-0vQtxtH3IPcE';
+const ECS_SERVICE_NAME = 'TuracoChorusComputeStack-ServiceD69D759B-V0zNXNkBZUUY';
+
+// Lets GitHub Actions assume an AWS role via OIDC instead of long-lived access-key secrets.
+// Reuses the OIDC provider loggers-world's own stack already registered — IAM allows only
+// one provider per issuer URL per account, so this stack must not declare a second one.
 export class GithubOidcStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -33,11 +36,9 @@ export class GithubOidcStack extends cdk.Stack {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
         },
         StringLike: {
-          // only the main branch (i.e. a merge/push to main) can assume this role.
-          // GitHub's sub claim sometimes appends immutable owner/repo IDs after a
-          // literal "@" (e.g. "owner@123/repo@456"). The wildcard only expands
-          // after that literal "@", which real GitHub names can never contain
-          // themselves, so a look-alike account/repo name can't match this.
+          // Restricts to pushes on main. The second pattern covers GitHub's occasional
+          // owner/repo-ID suffix after a literal "@" — a real repo name can't contain
+          // "@" itself, so a look-alike name can't match this.
           'token.actions.githubusercontent.com:sub': [
             `repo:${GITHUB_REPO}:ref:refs/heads/main`,
             `repo:${GITHUB_REPO.replace('/', '@*/')}@*:ref:refs/heads/main`,
@@ -62,6 +63,15 @@ export class GithubOidcStack extends cdk.Stack {
         'ecr:CompleteLayerUpload',
       ],
       resources: [repository.repositoryArn],
+    }));
+
+    // Lets CI actually trigger the deploy instead of that step staying manual — see
+    // ecs-deployment.md. Scoped to this one service only; DescribeServices is for
+    // `aws ecs wait services-stable` in ci.yml.
+    const ecsServiceArn = `arn:aws:ecs:${this.region}:${this.account}:service/${ECS_CLUSTER_NAME}/${ECS_SERVICE_NAME}`;
+    deployRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['ecs:UpdateService', 'ecs:DescribeServices'],
+      resources: [ecsServiceArn],
     }));
 
     new cdk.CfnOutput(this, 'GithubActionsDeployRoleArnOutput', {

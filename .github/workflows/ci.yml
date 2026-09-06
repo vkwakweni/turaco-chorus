@@ -44,3 +44,29 @@ jobs:
           docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
+
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::300052334965:role/github-actions-turaco-chorus-deploy
+          aws-region: af-south-1
+
+      # Cluster/service names are CDK-auto-generated (see ClusterArnOutput/ServiceNameOutput on
+      # TuracoChorusComputeStack) — hardcoded here the same way the deploy role ARN above is.
+      - run: |
+          aws ecs update-service \
+            --cluster TuracoChorusComputeStack-ClusterEB0386A7-0vQtxtH3IPcE \
+            --service TuracoChorusComputeStack-ServiceD69D759B-V0zNXNkBZUUY \
+            --force-new-deployment \
+            --region af-south-1
+          aws ecs wait services-stable \
+            --cluster TuracoChorusComputeStack-ClusterEB0386A7-0vQtxtH3IPcE \
+            --services TuracoChorusComputeStack-ServiceD69D759B-V0zNXNkBZUUY \
+            --region af-south-1
