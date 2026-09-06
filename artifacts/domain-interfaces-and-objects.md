@@ -1,6 +1,6 @@
 ---
 title: Domain Interfaces and Objects
-last-updated: 2026-08-13
+last-updated: 2026-09-06
 ---
 
 # Domain Interfaces and Objects
@@ -49,7 +49,7 @@ interface IConsentStore
 
 **Returns:** the caller's current or updated `ConsentRecord`. Knows nothing about what "user" means upstream — no assumption about which auth provider or account model is behind it; `userId` is an opaque string the caller supplies.
 
-**Adapters:** `DynamoDbConsentStore` (planned) — own DynamoDB table (construct id `TuracoChorusConsent`), PK `userId` only, one row per user.
+**Adapters:** `DynamoDbConsentStore` — own DynamoDB table (construct id `TuracoChorusConsent`), PK `userId` only, one row per user.
 
 ### `ILogDataSource` — the Data side
 
@@ -76,7 +76,7 @@ interface IInsightEngine
     Task<Answer> AskAsync(AggregateStats stats, string question)
 ```
 
-**Returns:** `ExtractRangeAsync` returns a `RequestedRange` resolved from the question text alone — it never sees `AggregateStats`. `AskAsync` returns the final `Answer`, built only from the `AggregateStats` it's given, so it's structurally incapable of leaking anything beyond what's already been aggregated.
+**Returns:** `ExtractRangeAsync` returns a `RequestedRange` resolved from the question text alone — it never sees `AggregateStats`. `AskAsync` returns the final `Answer`, built only from the `AggregateStats` it's given, so it's structurally incapable of leaking anything beyond what's already been aggregated. `ExtractRangeAsync` always succeeds from the caller's perspective: both adapters catch a failure on this specific call (a refused, blocked, or unparseable response) and fall back to `RequestedRange(null, null)` — an open-ended range — rather than surfacing an exception.
 
 **Adapters:** two — `ClaudeInsightEngine` (Anthropic Claude API) and `GeminiInsightEngine` (Google Gemini API), genuinely interchangeable behind this one port, not a primary plus a stub. Both attach a fixed system prompt, supplied by the adapter itself, never the caller — keeping it adapter-internal rather than a parameter closes off a prompt-injection surface at exactly the boundary the Ethics-by-Design requirements protect. Both prompts are word-for-word identical between the two adapters. Final wording is settled in `ethics-by-design.md`, not here. Built config-driven per installer, same pattern as `CognitoIdentityVerifier`/`DynamoDbLogDataSource`.
 
@@ -91,7 +91,7 @@ interface IAuditLogger
 
 **Returns:** nothing — write-only. Called once per `/ask` request, regardless of outcome (including consent denials), per the Ethics-by-Design audit requirement.
 
-**Adapters:** `DynamoDbAskAuditLogger` (planned) — own DynamoDB table (construct id `TuracoChorusAskAudit`), PK `userId`, SK `timestamp`, append-only.
+**Adapters:** `DynamoDbAskAuditLogger` — own DynamoDB table (construct id `TuracoChorusAskAudit`), PK `userId`, SK `timestamp`, append-only.
 
 ## Domain objects
 
