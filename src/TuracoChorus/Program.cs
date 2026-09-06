@@ -38,6 +38,13 @@ if (app.Configuration.GetValue<bool>("UseFakeIdentityVerifier")
 }
 
 // Configure the HTTP request pipeline.
+// Registered first so it wraps everything below — see artifacts/api-contract.md's "Error responses".
+app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+}));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
