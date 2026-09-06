@@ -28,3 +28,7 @@ Returns whether the authenticated caller has opted in to `/ask`, and when. Route
 ## PUT /consent
 
 Grants or revokes the authenticated caller's consent to use `/ask`. Routes directly to `IConsentStore.SetConsentAsync`, called with the `userId` derived from the verified credential. Requires authentication. Revoking consent takes effect immediately for future `/ask` calls; it does not delete prior audit records (see `ethics-by-design.md`).
+
+## Error responses
+
+Any route can return `500 { "error": "An unexpected error occurred." }` for an unhandled exception — a global handler, not per-route logic. Registered as the outermost middleware specifically so CORS headers are still present on this response: without it, an unhandled exception reached Kestrel's own raw error response, which never passed back through the CORS middleware's header-writing step, and browsers reported that as a CORS failure regardless of the real cause (found via a real cross-origin integration trial, 2026-09-05).

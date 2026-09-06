@@ -78,7 +78,8 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - [x] Write up architecture doc referencing back to the Phase 1 requirements doc, showing requirement → design → implementation → test traceability — see `architecture.md`
 - [x] Choose a logo — placeholder for now, `assets/logo.svg`, wired into `README.md`; may be revisited for a final design later
 - [x] Switch `TuracoChorusConsent`/`TuracoChorusAskAudit`'s DynamoDB `RemovalPolicy` from `DESTROY` (dev-stage default, set while building/testing Phase 3) to `RETAIN` before an official/production deployment — deployed live, metadata-only change, no downtime
-- [ ] README polish, CI badge
+- [x] README polish — rewritten as an installation guide: concept, installation (running the container, wiring it into your app, configuration, local development, deploying), architecture
+- [ ] CI badge
 - [ ] Buffer for whatever slipped
 
 ## Later / Further Development
@@ -88,3 +89,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 - Replace the ASCII diagrams in `README.md` and `interaction-flows.md` with `.drawio` files, matching Logger's World's `architecture.drawio` convention — not required for the current design-doc pass
 - ~~`ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false`~~ — resolved while implementing `DynamoDbConsentStore`/`FakeConsentStore`: `GrantedAt` is now populated on every status change, granted or revoked, so it reads as "date of the last decision" and `null` means only "never decided"
 - `TuracoChorusAskAudit`'s sort key is a millisecond-precision ISO-8601 timestamp, scoped per-user (partition key `userId`). Two `/ask` calls from the *same* user finishing in the same millisecond would collide and silently overwrite one audit entry — practically negligible given each request crosses two LLM round trips before reaching the audit write, but not mathematically impossible (e.g. a double-submit or client retry). A uniqueness suffix on the sort key would close this off completely if it's ever worth the added complexity
+- **A spectrum of aggregation configurability, not just one point on it.** Found via the Logger's World local trial (2026-09-05): `DynamoDb:LogData:DateAttribute` is one flat attribute name applied to every entry regardless of `typeId`, but Logger's World's own schema is heterogeneous — `LogType.fields` supports a per-type `"date"` field (e.g. "dateRead" for a Books type), with a different key per log type, and no universal name beyond `createdAt` (see `data-models.md`). Not a bug in either project — a real gap between what the generic adapter's config can express and what an installer's actual schema looks like. Three tiers worth designing for explicitly, not just the first:
+    1. **Basic** (current): flat, generic config — one `DateAttribute`, one `Dimensions` list — fine when a schema is homogeneous enough for one attribute name to mean the same thing everywhere.
+    2. **Per-type configuration** (doesn't exist yet): `DateAttribute` (and dimension resolution generally) could vary per `typeId` instead of being one global string — still pure config, no code from the installer, but expressive enough for a heterogeneous schema like Logger's World's.
+    3. **Fully custom**: since `ILogDataSource` is a port, an installer can already write their own adapter with arbitrary aggregation logic instead of the generic DynamoDB one — worth documenting as an intentional customization path, not just an accident of the architecture.

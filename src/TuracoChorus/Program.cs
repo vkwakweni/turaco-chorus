@@ -17,6 +17,18 @@ builder.Services.AddScoped<StatsOrchestrator>();
 builder.Services.AddScoped<ConsentOrchestrator>();
 builder.Services.AddScoped<AskOrchestrator>();
 
+// Optional: only installers calling this API directly from browser JS (rather than proxying
+// through their own backend) need this at all. Comma-separated origins, e.g.
+// "https://app.example.com,http://localhost:5173". Unset means no CORS policy is added.
+var allowedOrigins = builder.Configuration["AllowedOrigins"]
+    ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+if (allowedOrigins is { Length: > 0 })
+{
+    builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+}
+
 var app = builder.Build();
 
 if (app.Configuration.GetValue<bool>("UseFakeIdentityVerifier")
@@ -26,6 +38,13 @@ if (app.Configuration.GetValue<bool>("UseFakeIdentityVerifier")
 }
 
 // Configure the HTTP request pipeline.
+// Registered first so it wraps everything below — see artifacts/api-contract.md's "Error responses".
+app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+}));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -39,6 +58,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+if (allowedOrigins is { Length: > 0 })
+{
+    app.UseCors();
+}
 
 app.MapGet("/stats", async (
     HttpRequest request,

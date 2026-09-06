@@ -27,7 +27,18 @@ public sealed class AskOrchestrator(
 
         var requestedRange = await insightEngine.ExtractRangeAsync(question);
         var stats = await logDataSource.GetStatsAsync(userId, requestedRange.From, requestedRange.To);
-        var answer = await insightEngine.AskAsync(stats, question);
+
+        Answer answer;
+        try
+        {
+            answer = await insightEngine.AskAsync(stats, question);
+        }
+        catch (QuestionNotAnsweredException)
+        {
+            answer = new Answer(
+                Text: "I couldn't determine an answer to that from your data.",
+                DataUsed: new DataUsed(StatsQueried: [], Range: stats.Range));
+        }
 
         await auditLogger.RecordAuditEntryAsync(new AuditEntry(
             UserId: userId,
