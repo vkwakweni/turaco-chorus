@@ -272,6 +272,7 @@ dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:Name" "category"
 dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:Type" "Lookup"
 dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:IdAttributeName" "habitTypeId"
 dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:LookupPartitionKeyValueTemplate" "USER#{sourceId}"
+dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:LookupSortKeyValueTemplate" "HABITTYPE#{habitTypeId}"
 dotnet user-secrets set "DynamoDb:LogData:Dimensions:1:LookupNameAttribute" "displayName"
 
 dotnet user-secrets set "DynamoDb:Consent:TableName" "ClarrikerConsent"
