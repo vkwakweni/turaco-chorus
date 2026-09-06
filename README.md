@@ -1,10 +1,30 @@
-<img src="assets/logo.svg" alt="Turaco Chorus logo" width="96" height="96">
-
 # Turaco Chorus
+
+<p align="center">
+  <img src="assets/logo-text.svg" alt="Turaco Chorus" width="200" height="200">
+</p>
+
+<p align="center">
+  <a href="https://github.com/vkwakweni/turaco-chorus/actions/workflows/ci.yml"><img src="https://github.com/vkwakweni/turaco-chorus/actions/workflows/ci.yml/badge.svg" alt="CI/CD"></a>
+  <a href="artifacts/roadmap.md"><img src="https://img.shields.io/badge/phase-5_testing_%26_polish-blue?style=flat-square" alt="Phase"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-lightgrey?style=flat-square" alt="License"></a>
+</p>
 
 Turaco Chorus is a .NET 8 microservice that lets users ask natural-language questions about their aggregated data, answered by either the Anthropic Claude API or Google's Gemini API, grounded only in aggregated statistics, never raw entry text. This was built as a live demonstration of the Ethics by Design framework: consent, data minimisation, and audit logging aren't bolted on after the AI feature works, but instead they're the requirements the feature is built to satisfy
 
 Named after the colourful Knysna Turaco, a social bird with a piercing alarm call for warning other animals of danger, Turaco Chorus plays on the idea that this service can report back on the state of aggregated data. Turacos can also come in many colours, and similarly Turaco Chorus uses a ports-and-adapters architecture, so that upstream applications may select the adapter that works best for them, with the core functionality remaining the same.
+
+## Available adapters
+
+| Port | Adapter(s) |
+|---|---|
+| `IIdentityVerifier` | Amazon Cognito |
+| `IConsentStore` | DynamoDB |
+| `ILogDataSource` | DynamoDB |
+| `IInsightEngine` | Claude, Gemini |
+| `IAuditLogger` | DynamoDB |
+
+See [Planned adapters](#planned-adapters) for what's next.
 
 Full design docs live under:
 - [`artifacts/`](artifacts/): [`domain-interfaces-and-objects.md`](artifacts/domain-interfaces-and-objects.md) (the five ports and domain objects)
@@ -13,7 +33,7 @@ Full design docs live under:
 - [`ethics-by-design.md`](artifacts/ethics-by-design.md) (the EbD-AI requirements)
 - [`tech-stack.md`](artifacts/tech-stack.md) (technology choices, split core vs. adapters)
 - [`ecs-deployment.md`](artifacts/ecs-deployment.md) (how it's actually deployed)
-- and [`roadmap.md`](artifacts/roadmap.md) (the phased build plan).
+- and [`roadmap.md`](artifacts/roadmap.md) (the phased build plan — currently Phase 5).
 
 ## Installation
 
@@ -302,7 +322,7 @@ curl -H "Authorization: Bearer <the token you set above>" http://localhost:5006/
 
 ### Deploying to AWS
 
-The `docker run` command from "Running the container" is enough to run the container anywhere. This project's own instance happens to be hosted on AWS, with the infrastructure as CDK (TypeScript) in `infra/`: two stacks, `TuracoChorusStack` (the `IConsentStore`/`IAuditLogger` DynamoDB tables Turaco Chorus owns itself) and `TuracoChorusComputeStack` (ECS on a single EC2 instance, Elastic IP, Secrets Manager, DNS). That's this deployment's own choice, not a requirement of the image — full walkthrough, including the free-tier rationale, the two-stack split, and how to safely pause or tear down compute without touching the tables, is in [`artifacts/ecs-deployment.md`](artifacts/ecs-deployment.md).
+The `docker run` command from "Running the container" is enough to run the container anywhere. This project's own instance happens to be hosted on AWS, with the infrastructure as CDK (TypeScript) in `infra/`: three stacks — `TuracoChorusStack` (the `IConsentStore`/`IAuditLogger` DynamoDB tables Turaco Chorus owns itself), `TuracoChorusComputeStack` (ECS on a single EC2 instance, Elastic IP, Secrets Manager, DNS), and `TuracoChorusGithubOidcStack` (a one-time CI/CD bootstrap: GitHub Actions' OIDC trust, the ECR repository, and the CI deploy role). That's this deployment's own choice, not a requirement of the image — full walkthrough, including the free-tier rationale, the stack split, and how to safely pause or tear down compute without touching the tables, is in [`artifacts/ecs-deployment.md`](artifacts/ecs-deployment.md).
 
 ## Architecture
 
@@ -340,6 +360,32 @@ per-application.
 - [`infra/`](infra/) — AWS CDK (TypeScript): `TuracoChorusStack` (data) and `TuracoChorusComputeStack` (ECS/EC2 compute) — see "Deploying to AWS" above
 - [`artifacts/`](artifacts/) — design docs (see above)
 
-## Status
+## Planned adapters
 
-Phases 1 through 4 (requirements & design, core domain logic, real adapters, containerisation & CI/CD) are complete, deployed, and verified live. Phase 5 (testing, polish, docs) is in progress — see `roadmap.md` for the full checklist.
+- `IIdentityVerifier`
+  - Auth0
+  - Azure AD
+  - Generic JWT adapter
+  - Firebase Auth
+- `IConsentStore`
+  - PostgreSQL
+  - SQLite
+  - MongoDB
+- `ILogDataSource`
+  - Generic REST/GraphQL adapter
+  - PostgreSQL
+  - MySQL
+  - SQLite
+  - MongoDB
+- `IInsightEngine`
+  - Mistral API
+  - OpenAI
+  - Ollama model support
+- `IAuditLogger`
+  - S3
+  - Kafka/EventBridge
+  - PostgreSQL
+  - SQLite
+  - MongoDB
+
+See [`artifacts/roadmap.md`](artifacts/roadmap.md)'s "Later / Further Development" for the full list of open threads.
