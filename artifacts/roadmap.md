@@ -86,7 +86,7 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
     - [x] Document `ExtractRangeAsync`'s parse-failure fallback: added to `domain-interfaces-and-objects.md`'s `IInsightEngine` section — both adapters fall back to an open-ended `RequestedRange(null, null)` on a refused, blocked, or unparseable range-extraction call, keeping "`ExtractRangeAsync` always succeeds" true
     - [x] Fixed the shape of `Program.cs`'s unreachable branch: `_ => Results.Problem(...)` now `throw`s instead, so the (unreachable) case falls through the global exception handler and matches the documented `{ "error" }` 500 shape rather than Problem+JSON. `dotnet build`/`test`/`format --verify-no-changes` all clean
     - [x] Added `PromptSymmetryTests` (`TuracoChorus.Tests`), asserting `ClaudePrompts`/`GeminiPrompts` stay byte-identical — both adapter assemblies now grant `InternalsVisibleTo("TuracoChorus.Tests")` alongside their own test project, the only reason for the extra visibility
-- [ ] CI badge
+- [x] CI badge — added to `README.md`, below the logo, alongside phase and license badges
 
 ## Later / Further Development
 
