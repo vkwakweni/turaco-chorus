@@ -1,6 +1,7 @@
 using TuracoChorus.Core.Models;
 using TuracoChorus.Core.Orchestration;
 using TuracoChorus.Core.Fakes;
+using TuracoChorus.Core.Ports;
 using Xunit;
 
 namespace TuracoChorus.Core.Tests.Orchestration;
@@ -157,5 +158,35 @@ public sealed class AskOrchestratorTests
         Assert.Equal(question, deniedEntry.QueryText);
         Assert.False(deniedEntry.ConsentGranted);
         Assert.Null(deniedEntry.AggregatedDataSent);
+    }
+
+    [Fact]
+    public async Task AskAsync_WhenInsightEngineCannotAnswer_ReturnsAllowedWithAGracefulAnswer_AndStillAudits()
+    {
+        var consentStore = new FakeConsentStore();
+        await consentStore.SetConsentAsync("user-1", granted: true);
+
+        var logDataSource = new FakeLogDataSource();
+        var seededStats = SomeStats("user-1");
+        logDataSource.Seed("user-1", seededStats);
+
+        var insightEngine = new FakeInsightEngine
+        {
+            AskExceptionToThrow = new QuestionNotAnsweredException("Gemini determined this question can't be answered from the available aggregates.")
+        };
+        var auditLogger = new FakeAuditLogger();
+        var orchestrator = new AskOrchestrator(consentStore, insightEngine, logDataSource, auditLogger);
+
+        var result = await orchestrator.AskAsync("user-1", "how am I doing?");
+
+        // The caller asked a question and gets a (negative) answer back, not an error.
+        var allowed = Assert.IsType<AskAllowed>(result);
+        Assert.False(string.IsNullOrWhiteSpace(allowed.Answer.Text));
+
+        // Ethics-by-Design: every /ask call is audited, regardless of outcome — including this one.
+        var entry = Assert.Single(auditLogger.Entries);
+        Assert.Equal("user-1", entry.UserId);
+        Assert.True(entry.ConsentGranted);
+        Assert.Same(seededStats, entry.AggregatedDataSent);
     }
 }

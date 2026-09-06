@@ -13,6 +13,7 @@ public sealed class FakeInsightEngine : IInsightEngine
     public AggregateStats? LastStatsReceived { get; private set; }
     public int ExtractRangeCallCount { get; private set; }
     public int AskCallCount { get; private set; }
+    public Exception? AskExceptionToThrow { get; set; }
 
     public Task<RequestedRange> ExtractRangeAsync(string question)
     {
@@ -24,6 +25,8 @@ public sealed class FakeInsightEngine : IInsightEngine
     {
         AskCallCount++;
         LastStatsReceived = stats;
-        return Task.FromResult(AnswerToReturn);
+        return AskExceptionToThrow is not null
+            ? Task.FromException<Answer>(AskExceptionToThrow)
+            : Task.FromResult(AnswerToReturn);
     }
 }
