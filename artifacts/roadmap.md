@@ -68,28 +68,68 @@ It exists as a live demonstration of Ethics by Design: consent, data minimisatio
 ## Phase 4 — Containerization + CI/CD
 
 - [x] Dockerfile for the .NET service
-- [x] GitHub Actions pipeline: build → test → lint → Docker build → push to registry (ECR/GHCR)
-- [x] Deploy step to ECS via the CDK stack from Phase 1 — switched from the originally-scoped Fargate to the **EC2 launch type**, since Fargate has no free tier and this account's EC2 free tier runs through 19 Jan 2027; introduces a new `TuracoChorusComputeStack`, kept separate from `TuracoChorusStack`'s DynamoDB tables so tearing down compute never risks table data; also adds a stable Elastic IP and a real subdomain (`turacochorus.literaturelounge.org`, delegated from Squarespace via NS records) so the deploy doesn't read as a bare-IP demo — see `ecs-deployment.md`. Deliberately **not** wired to any specific upstream application: `IIdentityVerifier`/`ILogDataSource` run fake (new per-port split in `AdapterRegistration.cs`), `IConsentStore`/`IAuditLogger`/`IInsightEngine` stay real — see `ecs-deployment.md`'s "Per-port fake/real split". Deployed and verified live (ECS service stable, single task, no restarts); the Squarespace NS delegation record has been added for host `turacochorus` — DNS propagation not yet confirmed
+- [x] GitHub Actions pipeline: build → test → lint → Docker build → push to registry (ECR)
+- [x] Deploy step to ECS via the CDK stack from Phase 1 — **EC2 launch type**, not the originally-scoped Fargate (no free tier); introduces `TuracoChorusComputeStack`, kept separate from `TuracoChorusStack`'s tables; stable Elastic IP and real subdomain (`turacochorus.literaturelounge.org`) so it doesn't read as a bare-IP demo — see `ecs-deployment.md`. Not wired to any specific upstream application: `IIdentityVerifier`/`ILogDataSource` run fake, `IConsentStore`/`IAuditLogger`/`IInsightEngine` stay real — see "Per-port fake/real split". Deployed and verified live; DNS propagation confirmed.
 - [x] Wire up secrets (Gemini/Claude API key) via AWS Secrets Manager, injected into the ECS task — see `ecs-deployment.md`. Real Gemini key set and verified live via a forced ECS redeployment; that redeploy also surfaced and fixed a stuck-rollout bug in the service's deployment configuration (single instance + fixed host port can't run two tasks at once) — see `ecs-deployment.md`'s "Deployment configuration"
 
 ## Phase 5 — Testing, polish, docs
 
 - [x] End-to-end test: seed sample data in Logger's World's table, hit `/ask` from a fresh deploy, verify response + audit log entry — re-scoped to stay independent of Logger's World; verified against the live deployment with the seeded `demo-user` (real Gemini answer, real audit write, no raw text)
 - [x] Write up architecture doc referencing back to the Phase 1 requirements doc, showing requirement → design → implementation → test traceability — see `architecture.md`
-- [x] Choose a logo — placeholder for now, `assets/logo.svg`, wired into `README.md`; may be revisited for a final design later
+- [x] Choose a logo — real v1 design: `assets/logo.svg` (icon) and `assets/logo-text.svg` (icon + name), both wired into `README.md`
 - [x] Switch `TuracoChorusConsent`/`TuracoChorusAskAudit`'s DynamoDB `RemovalPolicy` from `DESTROY` (dev-stage default, set while building/testing Phase 3) to `RETAIN` before an official/production deployment — deployed live, metadata-only change, no downtime
 - [x] README polish — rewritten as an installation guide: concept, installation (running the container, wiring it into your app, configuration, local development, deploying), architecture
-- [ ] CI badge
 - [ ] Buffer for whatever slipped
+    - [ ] Reconcile the non-colocated `Lookup` dimension's IAM story: `dynamodb-adapter.md`'s "Read access: IAM policy" section says `Query` only, but `FetchLookupNameAsync` (`DynamoDbLogDataSource.cs`) calls `GetItem` for that path — either grant `GetItem`/`BatchGetItem` scoped to the referenced lookup table ARN(s), or implement the caching/batching "Known limitations" already called for so the access pattern matches what's documented
+    - [ ] Wire up CI-triggered deploy so `tech-stack.md`'s "triggers the ECS deploy" claim is actually true: scope `ecs:UpdateService`/`ecs:DescribeServices` onto the GitHub Actions deploy role (`github-oidc-stack.ts`), add cluster/service `CfnOutput`s to `compute-stack.ts`, and add a `deploy` job to `ci.yml` after `build-and-push` — full path written up in `ecs-deployment.md`'s "CI-triggered deploy (planned)". Note the real trade-off before doing it: every merge to main will then bounce the live container (stop-then-start, per "Deployment configuration" below), not just push an unused image
+    - [ ] Add Consent and Audit schema sections to `dynamodb-adapter.md`: it currently documents only `DynamoDbLogDataSource`, despite reading as the DynamoDB adapter reference; the `TuracoChorusConsent`/`TuracoChorusAskAudit` schemas actually live in `tech-stack.md` instead, with no cross-reference either direction
+    - [ ] Document `ExtractRangeAsync`'s parse-failure fallback: `ClaudeInsightEngine`/`GeminiInsightEngine` silently substitute an empty `RequestedRange` when the AI response fails to parse, keeping "`ExtractRangeAsync` always succeeds" true — reasonable behavior, just never mentioned at the port level in `domain-interfaces-and-objects.md`
+    - [ ] Remove (or fix the shape of) `Program.cs`'s unreachable `Results.Problem(...)` branch: guards against a third `AskResult` subtype that doesn't exist — `AskAllowed`/`AskDenied` are the only two — so it's dead code; if it somehow ran, it would return a Problem+JSON body instead of the documented `{ "error" }` shape
+    - [ ] Add a test asserting Claude's and Gemini's system prompts stay byte-identical: true today (verified by diff), backing the "genuinely interchangeable" claim in `ai-provider-adapters.md`, but nothing currently catches a future one-sided edit
+- [ ] CI badge
 
 ## Later / Further Development
 
-- Frontend integration: surface the NL query box inside Logger's World's UI, calling this service's `/ask` endpoint directly
+### Feature scope deferred
+
+- Frontend integration: surface the NL query box inside an upstream application's UI, calling this service's `/ask` endpoint directly
+
+### Planned adapters
+
+Per-port alternatives beyond what's shipped today (Cognito, DynamoDB×3, Claude/Gemini) — none scoped or scheduled, just candidates worth naming so README's "Planned adapters" pointer here has something behind it:
+
+- `IIdentityVerifier`: Auth0, Azure AD, Firebase Auth, or a generic JWT adapter — worth it once an installer isn't on Cognito; matches Phase 1's existing note that a non-Cognito adapter was deliberately deferred, not designed against yet.
+- `IConsentStore`: PostgreSQL, SQLite, MongoDB — for installers who don't want Turaco Chorus creating its own DynamoDB tables inside their AWS account.
+- `ILogDataSource`: a generic REST/GraphQL adapter (calls the upstream app's own API instead of reading its database directly), plus PostgreSQL, MySQL, SQLite, MongoDB — the REST/GraphQL case matters most for installers who can't grant direct DB access at all.
+- `IInsightEngine`: OpenAI, Mistral, and local-inference support beyond Ollama (e.g. LM Studio, vLLM) — same contract as Claude/Gemini; mainly a matter of provider coverage and cost/latency trade-offs.
+- `IAuditLogger`: S3 (append-only JSON lines) or a Kafka/EventBridge sink — for installers who want audit events cheap-and-durable, or feeding a downstream pipeline, rather than in their own table.
+
+### Config & architecture ideas
+
+- A real `422` for `/ask` when the AI genuinely can't answer from the available aggregates, instead of today's graceful `200` with an apology string in `answer`. Deliberately not built this pass — `AskOrchestrator` already treats "couldn't answer" as a valid, gracefully-handled outcome (still audited, still a real success from the caller's perspective), and a distinct error status only earns its complexity once a client actually needs to branch on it programmatically rather than just displaying the answer text. `openapi.yaml` still documents a `422` from before this was decided — see `api-contract.md`'s `/ask` section for the note.
 - CDK cross-stack table-name discovery: instead of plainly configuring `DynamoDb:LogData:TableName` (current design, see `dynamodb-adapter.md`), the upstream stack could publish its table name via an SSM parameter, which Turaco Chorus's stack resolves as a CloudFormation dynamic reference and injects as an ECS environment variable. This creates a deploy-ordering dependency between the two stacks — worth it only when the same operator controls both, which a genuine third-party installer wouldn't.
-- Replace the ASCII diagrams in `README.md` and `interaction-flows.md` with `.drawio` files, matching Logger's World's `architecture.drawio` convention — not required for the current design-doc pass
-- ~~`ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false`~~ — resolved while implementing `DynamoDbConsentStore`/`FakeConsentStore`: `GrantedAt` is now populated on every status change, granted or revoked, so it reads as "date of the last decision" and `null` means only "never decided"
-- `TuracoChorusAskAudit`'s sort key is a millisecond-precision ISO-8601 timestamp, scoped per-user (partition key `userId`). Two `/ask` calls from the *same* user finishing in the same millisecond would collide and silently overwrite one audit entry — practically negligible given each request crosses two LLM round trips before reaching the audit write, but not mathematically impossible (e.g. a double-submit or client retry). A uniqueness suffix on the sort key would close this off completely if it's ever worth the added complexity
-- **A spectrum of aggregation configurability, not just one point on it.** Found via the Logger's World local trial (2026-09-05): `DynamoDb:LogData:DateAttribute` is one flat attribute name applied to every entry regardless of `typeId`, but Logger's World's own schema is heterogeneous — `LogType.fields` supports a per-type `"date"` field (e.g. "dateRead" for a Books type), with a different key per log type, and no universal name beyond `createdAt` (see `data-models.md`). Not a bug in either project — a real gap between what the generic adapter's config can express and what an installer's actual schema looks like. Three tiers worth designing for explicitly, not just the first:
+- **A spectrum of aggregation configurability, not just one point on it.** Found via the Logger's World local trial (2026-09-05): 
+  - `DynamoDb:LogData:DateAttribute` is one flat attribute name applied to every entry regardless of `typeId`, but Logger's World's own schema is heterogeneous — `LogType.fields` supports a per-type `"date"` field (e.g. "dateRead" for a Books type), with a different key per log type, and no universal name beyond `createdAt` (see `data-models.md`). Not a bug in either project — a real gap between what the generic adapter's config can express and what an installer's actual schema looks like. Three tiers worth designing for explicitly, not just the first:
     1. **Basic** (current): flat, generic config — one `DateAttribute`, one `Dimensions` list — fine when a schema is homogeneous enough for one attribute name to mean the same thing everywhere.
     2. **Per-type configuration** (doesn't exist yet): `DateAttribute` (and dimension resolution generally) could vary per `typeId` instead of being one global string — still pure config, no code from the installer, but expressive enough for a heterogeneous schema like Logger's World's.
     3. **Fully custom**: since `ILogDataSource` is a port, an installer can already write their own adapter with arbitrary aggregation logic instead of the generic DynamoDB one — worth documenting as an intentional customization path, not just an accident of the architecture.
+
+### Known limitations
+
+- `TuracoChorusAskAudit`'s sort key is a millisecond-precision ISO-8601 timestamp, scoped per-user (partition key `userId`). Two `/ask` calls from the *same* user finishing in the same millisecond would collide and silently overwrite one audit entry — practically negligible given each request crosses two LLM round trips before reaching the audit write, but not mathematically impossible (e.g. a double-submit or client retry). A uniqueness suffix on the sort key would close this off completely if it's ever worth the added complexity
+
+### Auditing
+
+- The audit log doesn't yet cover every failure path on `/ask`. `AskOrchestrator` only writes an audit entry on the granted, denied, and "AI couldn't answer" outcomes — an unhandled error elsewhere in the flow (e.g. `ILogDataSource` or `IInsightEngine` throwing an infrastructure or parse failure) skips the audit write entirely and falls through to the generic 500 handler, which doesn't audit either. This is currently untested: no test exercises a failure other than `QuestionNotAnsweredException` mid-flow. Worth closing, since `ethics-by-design.md` describes the audit guarantee as holding "regardless of outcome."
+
+### Testing
+
+- The six adapter integration tests (`CognitoIdentityVerifierIntegrationTests`, `DynamoDbLogDataSourceIntegrationTests`, `DynamoDbConsentStoreIntegrationTests`, `DynamoDbAskAuditLoggerIntegrationTests`, `ClaudeInsightEngineIntegrationTests`, `GeminiInsightEngineIntegrationTests`) exist on disk but are gitignored — never committed, so CI (once the CI badge item above is done) never runs them. They're the only tests exercising the real AWS/Claude/Gemini wire formats; everything else is unit-tested against fakes/hand-built responses. Worth deciding deliberately whether to publish them (`Category=Integration` already keeps a plain `dotnet test` green without credentials, so tracking them costs nothing until someone opts in) rather than leaving that coverage invisible to anyone but whoever ran them locally.
+
+### Docs polish
+
+- Replace the ASCII diagrams in `README.md` and `interaction-flows.md` with `.drawio` files, matching Logger's World's `architecture.drawio` convention — not required for the current design-doc pass
+
+### Resolved
+
+- ~~`ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false`~~ — resolved while implementing `DynamoDbConsentStore`/`FakeConsentStore`: `GrantedAt` is now populated on every status change, granted or revoked, so it reads as "date of the last decision" and `null` means only "never decided"
