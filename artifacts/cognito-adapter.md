@@ -12,7 +12,7 @@ Same pattern as `DynamoDbLogDataSource` (see `dynamodb-adapter.md`): config-driv
 ## Scope
 
 - Configuration is supplied at deploy time (static), one Turaco Chorus deployment per installer.
-- The adapter speaks Cognito's JWT/JWKS format; which pool it verifies against is config-driven (`Region` + `UserPoolId`, from which the JWKS endpoint is derived via Cognito's standard URL pattern — not separately configured).
+- The adapter speaks Cognito's JWT/JWKS format; which pool it verifies against is config-driven (`Region` + `UserPoolId`, from which the issuer URL `https://cognito-idp.{Region}.amazonaws.com/{UserPoolId}` is derived — not separately configured). The JWKS themselves aren't fetched from a hardcoded URL pattern: `ConfigurationManager<OpenIdConnectConfiguration>` resolves them via standard OIDC discovery at `{issuer}/.well-known/openid-configuration`, which is where `jwks_uri` actually comes from. That same `ConfigurationManager` handles caching internally (its own default refresh interval) — the adapter has no separate caching logic to write or configure.
 
 ## Configuration schema
 

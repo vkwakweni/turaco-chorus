@@ -21,6 +21,8 @@ Returns aggregated statistics about the authenticated caller's own data — a to
 
 Answers a natural-language question about the authenticated caller's own data, using an AI provider grounded only in aggregated stats — never raw entry text. `IConsentStore` is checked first; on denial, returns 403 without calling `ILogDataSource` or `IInsightEngine` at all — including the range-extraction step (see `interaction-flows.md`). On success, `IInsightEngine` is called twice: first with just the question text, to resolve a `RequestedRange`; then, once `ILogDataSource` has returned `AggregateStats` for that range, a second time with that `AggregateStats` and the original question to produce the answer. Writes an `AuditEntry` via `IAuditLogger` regardless of outcome. Requires authentication and explicit consent.
 
+When `IInsightEngine` can't determine an answer from the available aggregates, that's a graceful `200`, not an error: `answer` holds an apology string and `dataUsed` may be empty, but the request still succeeded and is still audited. `openapi.yaml` currently also documents a `422` for this case — that response is never actually returned and should be read as stale until it's removed (see `roadmap.md`'s "Later / Further Development" for the deferred decision on whether a real `422` is worth adding instead).
+
 ## GET /consent
 
 Returns whether the authenticated caller has opted in to `/ask`, and when. Routes directly to `IConsentStore.GetConsentAsync`, called with the `userId` derived from the verified credential. Requires authentication.
