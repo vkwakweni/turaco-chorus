@@ -35,7 +35,7 @@ This keeps "tear down compute" and "tear down data" permanently independent, not
 - `Ec2TaskDefinition` pulling the existing `turaco-chorus` ECR repository (from `github-oidc-stack.ts`) by tag `latest`.
 - Container port mapping: host `80` → container `8080` (the .NET 8 container image's default HTTP port). Host `80` rather than `8080` so the real URL has no port number in it — `http://turacochorus.literaturelounge.org`, not `:8080` appended.
 - Security group: inbound `80` from a small managed-prefix-list allow-list only (temporary, while identity verification is fake — see "IP allow-list" and "Per-port fake/real split" below); egress open (default).
-- Task role: least-privilege on the three DynamoDB tables the service actually uses — `dynamodb:Query` only on the log data table(s) (read-only, matching `dynamodb-adapter.md`'s documented IAM policy exactly), full read/write on consent and audit (owned by `TuracoChorusStack`). Where each table name comes from is covered next.
+- Task role: least-privilege on the three DynamoDB tables the service actually uses — `dynamodb:Query`/`dynamodb:GetItem` only on the log data table(s) (read-only, matching `dynamodb-adapter.md`'s documented IAM policy exactly), full read/write on consent and audit (owned by `TuracoChorusStack`). Where each table name comes from is covered next.
 
 ## Per-port fake/real split
 
@@ -43,7 +43,7 @@ This deployment is deliberately **not** wired to any specific upstream applicati
 
 - `IIdentityVerifier` and `ILogDataSource` run as their in-memory fakes — no real Cognito pool, no real upstream DynamoDB table, anywhere in this deployment.
 - `IConsentStore`, `IAuditLogger`, `IInsightEngine` stay real — Turaco Chorus's own DynamoDB tables and a real Gemini/Claude call. This is what Phase 4's two checklist items actually needed to prove: the container runs on ECS/EC2, and the Secrets-Manager-injected API key genuinely gets used.
-- `Cognito:*`/`DynamoDb:LogData:*` are excluded from the container's environment entirely (not merely unused) while these flags are `true` — see `toContainerEnvironment`'s `excludePrefixes` — and the log-data `dynamodb:Query` IAM grant is skipped outright, so this deployment holds no IAM permission on any real upstream table either.
+- `Cognito:*`/`DynamoDb:LogData:*` are excluded from the container's environment entirely (not merely unused) while these flags are `true` — see `toContainerEnvironment`'s `excludePrefixes` — and the log-data IAM grant is skipped outright, so this deployment holds no IAM permission on any real upstream table either.
 
 **Making the fake identity verifier actually usable**: `FakeIdentityVerifier` starts with an empty credential registry, and the only thing that ever seeds it (`DevSeedData.cs`) is wrapped in `#if DEBUG` — stripped out of the `dotnet publish -c Release` build this Dockerfile produces. So without more, the deployed container would reject every request, including the deployer's own. `PartialFakeSeedData.cs` (new, not DEBUG-gated) registers exactly one test credential/user pair at startup, and seeds `FakeLogDataSource` with a plausible stats fixture for that user — the minimum needed to actually exercise `/stats`/`/ask`/`/consent` against this deployment.
 

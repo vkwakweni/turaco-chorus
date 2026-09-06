@@ -95,7 +95,7 @@ function toContainerEnvironment(flatConfig: Record<string, string>, excludePrefi
   return result;
 }
 
-/** Every distinct table ARN this task needs read (`Query`-only) access to: the main
+/** Every distinct table ARN this task needs read access to: the main
  * `DynamoDb:LogData:TableName`, plus any dimension's separately-configured `LookupTableName`. */
 function logDataTableArns(flatConfig: Record<string, string>, region: string, account: string): string[] {
   const tableNames = new Set<string>();
@@ -186,7 +186,7 @@ export class TuracoChorusComputeStack extends cdk.Stack {
       description: `Turaco Chorus ${insightProvider} API key — set the real value out-of-band after deploy`,
     });
 
-    // Auto-generated, genuinely random — retrieve via `aws secretsmanager get-secret-value`
+    // Auto-generated, genuinely random: retrieve via `aws secretsmanager get-secret-value`
     // to use as the test Authorization bearer token. Only created while the identity verifier
     // is fake; PartialFakeSeedData registers this exact value against FAKE_TEST_USER_ID.
     const fakeTestCredentialSecret = USE_FAKE_IDENTITY_VERIFIER
@@ -234,13 +234,10 @@ export class TuracoChorusComputeStack extends cdk.Stack {
     props.auditTable.grantReadWriteData(taskDefinition.taskRole);
 
     if (!USE_FAKE_LOG_DATA_SOURCE) {
-      // Least-privilege, read-only, Query-only — matches dynamodb-adapter.md's documented IAM
-      // policy for ILogDataSource: no GetItem/Scan, so a bug that skips the key condition fails
-      // outright rather than leaking other users' data. Skipped entirely while log data is
-      // fake — this deployment has no business holding IAM permissions on a real upstream
-      // table it will never query.
+      // Least-privilege, read-only, no Scan — matches dynamodb-adapter.md's IAM policy.
+      // Skipped entirely while log data is fake, per USE_FAKE_LOG_DATA_SOURCE above.
       taskDefinition.taskRole.addToPrincipalPolicy(new iam.PolicyStatement({
-        actions: ['dynamodb:Query'],
+        actions: ['dynamodb:Query', 'dynamodb:GetItem'],
         resources: logDataTableArns(taskEnvironmentConfig, this.region, this.account),
       }));
     }
@@ -249,15 +246,12 @@ export class TuracoChorusComputeStack extends cdk.Stack {
       cluster,
       taskDefinition,
       desiredCount: 1,
-      // Single instance, fixed host port (80): a rolling start-before-stop deployment (the CDK
-      // default, maxHealthyPercent 200/minHealthyPercent 50) tries to place a second task on the
-      // same instance before stopping the first — impossible here, since the port is already
-      // taken. Stuck this way once already (a forced redeploy sat at 2 in-flight deployments
-      // indefinitely). Stop-then-start instead: brief downtime during a deploy, but never stuck.
+      // Single instance, fixed host port: CDK's default rolling deploy tries to run two tasks
+      // at once, which can't fit; got stuck once already. Stop-then-start avoids that.
       minHealthyPercent: 0,
       maxHealthyPercent: 100,
-      // AvailabilityZoneRebalancing.ENABLED (the CDK default) rejects maxHealthyPercent <= 100
-      // outright — a single-instance service has nothing to rebalance across anyway.
+      // ENABLED (the CDK default) rejects maxHealthyPercent <= 100 outright; nothing to
+      // rebalance across anyway with one instance.
       availabilityZoneRebalancing: ecs.AvailabilityZoneRebalancing.DISABLED,
     });
 

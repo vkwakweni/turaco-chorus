@@ -47,19 +47,21 @@ No SSM Parameter Store, no CDK cross-stack reference: a genuine third-party inst
 
 ## Read access: IAM policy
 
-Every request issues one `Query` against one partition (the caller's `sourceId`, via `PartitionKeyValueTemplate`). That query returns entry items, plus lookup items for any colocated dimension (see "Single-query optimization" below). The IAM policy grants exactly that: least-privilege, read-only, scoped to the table ARN(s) a given installer's config actually references:
+Every request issues one `Query` against one partition (the caller's `sourceId`, via `PartitionKeyValueTemplate`). That query returns entry items, plus lookup items for any colocated dimension. A non-colocated `Lookup` dimension falls back to a per-id `GetItem` instead (see "Single-query optimization" below). The IAM policy grants exactly that: least-privilege, read-only, scoped to the table ARN(s) a given installer's config actually references:
 
 ```
 Effect: Allow
-Action: dynamodb:Query
+Action:
+  - dynamodb:Query
+  - dynamodb:GetItem
 Resource: arn:aws:dynamodb:<region>:<account>:table/<physical table name>
 ```
 
-- `dynamodb:Query` only
-  - not `GetItem` (a whole-partition `Query` already returns everything needed, see below)
-  - not `Scan` (would read every partition, not just the one the adapter has a key for; excluding it means a bug that skips the key condition fails outright rather than leaking other users' data)
+- `dynamodb:Query` and `dynamodb:GetItem` only
+  - both always require a full, explicit key (`Query`'s `KeyConditionExpression`, `GetItem`'s `Key`) — neither can "skip" a condition the way `Scan` could, so the leakage risk that rules out `Scan` doesn't distinguish between these two
+  - not `Scan` (would read every partition, not just the one the adapter has a key for)
   - no write actions (`ILogDataSource` never writes)
-- If an installer configures a separate `LookupTableName` for one or more dimensions, the policy grants `Query` on that table's ARN too — scoped only to what's actually referenced.
+- If an installer configures a separate `LookupTableName` for one or more dimensions, the policy grants both actions on that table's ARN too — scoped only to what's actually referenced.
 
 ### Single-query optimization for colocated lookups
 
