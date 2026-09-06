@@ -19,13 +19,16 @@ A stable **Elastic IP** and a **real subdomain** (below) close the "looks like a
 - Networking: the account's **default VPC**, looked up rather than created, so this stack never provisions a NAT gateway or any other new VPC spend.
 The instance sits in a public subnet with a public IP, reaching Cognito/DynamoDB/the AI provider directly over the internet — no VPC endpoints needed at this scale.
 
-## Two-stack split
+## Stack split
 
-`infra/lib/infra-stack.ts` (`TuracoChorusStack`) currently holds both DynamoDB tables (`TuracoChorusConsent`, `TuracoChorusAskAudit`), both still on `RemovalPolicy.DESTROY` — that flip to `RETAIN` is a known, not-yet-done Phase 5 item.
-Adding compute resources into that same stack would mean a `cdk destroy` aimed at tearing down the EC2 side also deletes real consent/audit data already exercised against live infrastructure.
+Three stacks total:
 
-Compute lives in its own stack instead: **`TuracoChorusComputeStack`** (`infra/lib/compute-stack.ts`).
-This keeps "tear down compute" and "tear down data" permanently independent, not just for this one deploy.
+1. **`TuracoChorusStack`** (`infra/lib/infra-stack.ts`) — the two DynamoDB tables Turaco Chorus owns itself (`TuracoChorusConsent`, `TuracoChorusAskAudit`).
+    - Both on `RemovalPolicy.RETAIN` — a `cdk destroy` of this stack orphans the tables instead of deleting them.
+2. **`TuracoChorusComputeStack`** (`infra/lib/compute-stack.ts`) — the EC2/ECS compute side.
+    - Kept out of `TuracoChorusStack` from the start: a `cdk destroy` aimed at tearing down the EC2 side must never risk real consent/audit data already exercised against live infrastructure, `RemovalPolicy` aside. Keeps "tear down compute" and "tear down data" permanently independent, not just for this one deploy.
+3. **`TuracoChorusGithubOidcStack`** (`infra/lib/github-oidc-stack.ts`) — a one-time CI/CD bootstrap.
+    - GitHub Actions' OIDC trust, the `turaco-chorus` ECR repository, and the CI deploy role (see `ci.yml`). Orthogonal to the data/compute split above, not a third participant in it — deployed once, rarely touched again.
 
 ## Compute stack contents
 
