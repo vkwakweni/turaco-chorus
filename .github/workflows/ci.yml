@@ -28,6 +28,16 @@ jobs:
       - run: dotnet test TuracoChorus.sln --no-build --configuration Release
       - run: dotnet format TuracoChorus.sln --verify-no-changes
 
+  # Builds the image on pull requests without pushing or deploying it, so a broken Dockerfile shows
+  # on the PR instead of failing build-and-push after the merge. No AWS credentials are involved.
+  docker-build:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: docker build -t turaco-chorus:pr .
+
   build-and-push:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
