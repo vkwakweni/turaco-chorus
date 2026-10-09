@@ -178,6 +178,10 @@ Right now, `ci.yml`'s `build-and-push` job (gated to `push` on `main` only) buil
 
 **The trade-off to accept going in:** every merge to main will then automatically bounce the live container. Per "Deployment configuration" above (`minHealthyPercent: 0`), that's a genuine stop-then-start — a real, brief outage on every merge, not a rolling zero-downtime deploy. Worth deciding deliberately, not inheriting as a side effect of wiring the pipeline up.
 
+## Overlapping CI runs
+
+Two merges to `main` a few minutes apart start two runs of `ci.yml`, each of which builds and pushes the same `latest` image tag and then forces a new ECS deployment. Seen on 2026-10-09 with the deployment-mode and rate-limit PRs: the order happened to be safe, because the first run's image was already pushed before the second build began. Without a guard, a faster pair could finish the builds in the wrong order and leave `latest` on the older commit. The workflow therefore has a `concurrency` group keyed on the ref with `cancel-in-progress: false`: a run waits for the previous one on `main` to finish, and GitHub drops older queued runs in favour of the newest, which is fine because each run builds the tip of `main`.
+
 ## Setup
 
 ```

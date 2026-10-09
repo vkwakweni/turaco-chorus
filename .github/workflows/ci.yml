@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+# Runs for the same ref queue instead of overlapping, so two quick merges cannot build and deploy
+# out of order and leave the `latest` image on the older commit. GitHub keeps only the newest queued
+# run, which is fine because each run builds the tip of main. Pull requests each have their own ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     runs-on: ubuntu-latest
