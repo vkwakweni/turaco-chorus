@@ -226,6 +226,8 @@ export class TuracoChorusComputeStack extends cdk.Stack {
         UseFakeIdentityVerifier: String(useFakeIdentityVerifier),
         UseFakeLogDataSource: String(useFakeLogDataSource),
         ...(useFakeIdentityVerifier ? { FakeAuth__TestUserId: FAKE_TEST_USER_ID } : {}),
+        // The proxy is the only way in, so its X-Forwarded-For can be trusted by the rate limiter.
+        ...(publicHttps ? { ForwardedHeaders__Trust: 'true' } : {}),
       },
       secrets: {
         [`${insightProvider}__ApiKey`]: ecs.Secret.fromSecretsManager(aiProviderSecret),
