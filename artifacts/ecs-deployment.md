@@ -1,6 +1,6 @@
 ---
 title: ECS Deployment (EC2 Launch Type)
-last-updated: 2026-09-02
+last-updated: 2026-10-09
 ---
 
 # ECS Deployment (EC2 Launch Type)
@@ -56,9 +56,9 @@ aws secretsmanager get-secret-value --secret-id <FakeAuthTestCredentialSecretArn
 ```
 Use it as `Authorization: Bearer <value>`; the test user id is the fixed constant `demo-user`.
 
-**Network-level backstop**: since a fake identity verifier is a known single credential rather than real per-user verification, the security group's inbound rule is temporarily restricted to a small IP allow-list instead of `0.0.0.0/0` — belt-and-suspenders on top of the credential itself being unguessable. Widen to `ec2.Peer.anyIpv4()` once `USE_FAKE_IDENTITY_VERIFIER` flips to `false` alongside a real Cognito pool.
+**Network-level backstop**: since a fake identity verifier is a known single credential rather than real per-user verification, the security group's inbound rule is temporarily restricted to a small IP allow-list instead of `0.0.0.0/0` — belt-and-suspenders on top of the credential itself being unguessable. The allow-list is only dropped by opting in to a public deployment, which requires a real identity verifier (see "Deployment mode and public HTTPS").
 
-**Reversing this later**: flipping `USE_FAKE_IDENTITY_VERIFIER`/`USE_FAKE_LOG_DATA_SOURCE` to `false` (once there's a real upstream worth wiring in, Logger's World or otherwise) automatically restores the excluded Cognito/LogData config and the IAM grant — nothing else in the stack needs to change.
+**Reversing this later**: setting `useFakeIdentityVerifier`/`useFakeLogDataSource` to `false` in `config/deployment.local.json` (once there's a real upstream worth wiring in) automatically restores the excluded Cognito/LogData config and the IAM grant — nothing else in the stack needs to change. The file is optional and gitignored; without it both ports stay fake.
 
 ## IP allow-list (managed prefix list, referenced not managed)
 
@@ -86,7 +86,7 @@ The important design point: `compute-stack.ts` only ever **references** this pre
 
 ## Installer config (Cognito, upstream table shape)
 
-The values below are only read into the container while `USE_FAKE_IDENTITY_VERIFIER`/`USE_FAKE_LOG_DATA_SOURCE` are `false` (see above) — right now, neither is, so this section describes the mechanism for whenever a real upstream is deliberately wired in later, not this deployment's current state.
+The values below are only read into the container while `useFakeIdentityVerifier`/`useFakeLogDataSource` are `false` in `config/deployment.local.json` (see "Deployment mode and public HTTPS"). Without that file both are `true`, and this section describes the mechanism for whenever a real upstream is deliberately wired in, not the demo deployment's state.
 
 The same "no real identifiers in committed code" rule `environment-setup.md` applies to local user secrets applies equally to `infra/lib/compute-stack.ts` — a committed file — so none of the real Cognito/DynamoDB-log-data values can be hardcoded into it either.
 
@@ -94,6 +94,36 @@ The same "no real identifiers in committed code" rule `environment-setup.md` app
 - `infra/config/task-environment.local.json`: gitignored, holds the real values. Keys are written exactly like `dotnet user-secrets` keys (`"Cognito:UserPoolId"`, `"DynamoDb:LogData:Dimensions:0:Name"`, etc.) — copy straight out of `dotnet user-secrets list` output, reshaped into JSON.
 - `compute-stack.ts` reads this file at synth time, throws a clear error naming the missing file if it isn't there (mirrors the app's own `ConfigReading.RequireString` fail-fast convention), and converts each `:` to `__` when building the container's environment map — the exact separator ASP.NET Core's environment-variable config provider expects.
 - **Not** in this file: `DynamoDb:Consent:TableName` and `DynamoDb:Audit:TableName` come directly from the `TuracoChorusStack` table objects passed into the compute stack's props (a real CDK cross-stack reference — safe here since, unlike the upstream log-data table, Turaco Chorus owns these tables itself). Nor the AI provider API key — that's Secrets Manager, set out-of-band, never in this file.
+
+## Deployment mode and public HTTPS
+
+Which ports run fake, and whether the service is public, is chosen by an optional local file, `infra/config/deployment.local.json` (gitignored; `deployment.example.json` is the committed template). Missing file means the demo deployment described above, byte for byte: both ports fake, plain HTTP, inbound from the allow-list only.
+
+| Key | Default | Effect when changed |
+| --- | --- | --- |
+| `useFakeIdentityVerifier` | `true` | `false` reads the `Cognito:*` values from `task-environment.local.json` into the container and drops the fake test credential secret |
+| `useFakeLogDataSource` | `true` | `false` reads the `DynamoDb:LogData:*` values and grants the task role read-only `Query`/`GetItem` on those tables |
+| `publicHttps` | `false` | `true` serves the app over HTTPS from the whole internet, through a proxy container (below) |
+
+Unknown keys and non-boolean values are errors, so a typo cannot silently leave a port fake. `publicHttps: true` with `useFakeIdentityVerifier: true` is refused outright, because a fake verifier accepts one known credential rather than a per-user check. The logic is in `infra/lib/deployment-mode.ts` and is unit tested.
+
+**Why Caddy on the instance, not an ALB or CloudFront.** The project's stack choices stay inside the free tier. An ALB is free only for the account's first 12 months (to 19 Jan 2027) and costs money after. CloudFront is effectively free, but its connection to the instance would be plain HTTP over the public internet, carrying the bearer tokens in cleartext, and fixing that needs a certificate on the instance anyway. Caddy on the instance is free and keeps TLS all the way to the instance, at the price of operating it ourselves.
+
+**What `publicHttps` changes**
+
+- A second container, `caddy`, joins the task. It runs `caddy reverse-proxy --from <subdomain> --to app:8080`, which obtains and renews a Let's Encrypt certificate for the subdomain, redirects HTTP to HTTPS and forwards to the app.
+- The app container is no longer published on the host. Only the proxy is (ports 80 and 443), and it reaches the app by an ECS container link, so the app cannot be reached except through the proxy.
+- The security group opens ports 80 and 443 to the internet. Port 80 is needed for Let's Encrypt's HTTP challenge and the redirect, which is why the allow-list cannot stay while the certificate is being issued.
+- The proxy's `/data` (certificates and account key) is a host directory, `/var/lib/caddy-data`, so a task restart on the same instance keeps its certificate. A replaced instance starts empty and asks for a new certificate, which Let's Encrypt allows at this rate (its limits are on repeated certificates for the same name in a week).
+- The ServiceUrl output becomes `https://`.
+
+**Before the first public deploy**
+
+1. `deployment.local.json` has `useFakeIdentityVerifier: false`, and `task-environment.local.json` has the real `Cognito:*` values, so the container verifies real tokens.
+2. `task-environment.local.json` has `AllowedOrigins` set to the browser origin that will call the API (CORS).
+3. Nothing else listens on ports 80 or 443 on the instance.
+
+**To confirm on the first deploy** (not verified from documentation or a live run): that the proxy forwards the client address to the app in `X-Forwarded-For` (the rate limiter on `/ask` depends on it), and that the official `caddy` image keeps its data in `/data`.
 
 ## Elastic IP and reassociation
 
@@ -180,7 +210,7 @@ The NS delegation record left at Squarespace becomes inert (nothing left to reso
 
 ## Known limitations
 
-- No HTTPS: the endpoint is plain HTTP on a real domain name. Fine for a portfolio demo, not for anything handling real user credentials beyond the JWT already required by `IIdentityVerifier`. Adding HTTPS later means introducing an ALB + free ACM certificate — the tier that was explicitly not chosen this round.
+- No HTTPS by default: unless `publicHttps` is set, the endpoint is plain HTTP on a real domain name. Fine for a portfolio demo, not for anything handling real user credentials beyond the JWT already required by `IIdentityVerifier`. HTTPS is opt-in through a Caddy proxy container (see "Deployment mode and public HTTPS"); an ALB with a free ACM certificate was weighed and not chosen, because it costs money once the 12-month free tier ends.
 - Single instance: a crashed task restarts via ECS, but a crashed *instance* takes the ASG's normal replacement time, during which the service is fully down (no second instance to fail over to) — the Elastic IP re-associates to the replacement automatically, so the domain keeps working once it's back, just not during the gap.
 - Free-tier dependency: `t3.micro` is only free through **19 Jan 2027** for this account. After that, cost is comparable to the smallest Fargate task, without Fargate's zero-management story — a future revisit, not an immediate concern.
 - First-deploy DNS delegation is a manual step (adding the NS record at Squarespace) — every subsequent `cdk deploy` is fully automated, but that one step can't be scripted since it lives outside AWS.
