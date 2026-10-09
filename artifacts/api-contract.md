@@ -1,6 +1,6 @@
 ---
 title: API Contract
-last-updated: 2026-08-13
+last-updated: 2026-10-09
 ---
 
 # API Contract
@@ -34,3 +34,5 @@ Grants or revokes the authenticated caller's consent to use `/ask`. Routes direc
 ## Error responses
 
 Any route can return `500 { "error": "An unexpected error occurred." }` for an unhandled exception — a global handler, not per-route logic. Registered as the outermost middleware specifically so CORS headers are still present on this response: without it, an unhandled exception reached Kestrel's own raw error response, which never passed back through the CORS middleware's header-writing step, and browsers reported that as a CORS failure regardless of the real cause (found via a real cross-origin integration trial, 2026-09-05).
+
+`POST /ask` can also return `429 { "error": "Too many requests. Try again later." }` with a `Retry-After` header (seconds). It is the one route that spends on the AI provider, so it is limited per client address (default 10 a minute) and across all clients (default 500 a day). Both are fixed windows held in memory, so they reset when the service restarts, and are set with `RateLimiting:Ask:PerIpPerMinute` and `RateLimiting:Ask:GlobalPerDay`. The limiter runs before authentication and before the orchestrator, so a rejected request is not written to the audit log (see the audit-coverage limitation in `roadmap.md`). Behind a proxy the client address comes from `X-Forwarded-For`, trusted only when `ForwardedHeaders:Trust` is `true`.

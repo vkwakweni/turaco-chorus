@@ -3,6 +3,9 @@ using TuracoChorus.Auth;
 using TuracoChorus.Contracts;
 using TuracoChorus.Core.Orchestration;
 using TuracoChorus.Core.Ports;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
+using TuracoChorus.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +32,38 @@ if (allowedOrigins is { Length: > 0 })
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 }
 
+// Behind the proxy in a public deployment, the connection's address is the proxy's, so the real client
+// address has to come from X-Forwarded-For. Off unless asked for, because anyone who can reach the app
+// directly could otherwise forge the header; in a public deployment the proxy is the only way in
+// (see artifacts/ecs-deployment.md).
+var trustForwardedHeaders = builder.Configuration.GetValue<bool>("ForwardedHeaders:Trust");
+if (trustForwardedHeaders)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+}
+
+// /ask is the one route that spends on the AI provider; see AskRateLimitOptions for the two limits.
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = AskRateLimiting.Create(AskRateLimitOptionsReader.Read(builder.Configuration));
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var response = context.HttpContext.Response;
+        response.StatusCode = StatusCodes.Status429TooManyRequests;
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+        }
+
+        await response.WriteAsJsonAsync(new { error = "Too many requests. Try again later." }, cancellationToken);
+    };
+});
+
 var app = builder.Build();
 
 if (app.Configuration.GetValue<bool>("UseFakeIdentityVerifier")
@@ -44,6 +79,11 @@ app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async con
     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
     await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
 }));
+
+if (trustForwardedHeaders)
+{
+    app.UseForwardedHeaders();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -63,6 +103,9 @@ if (allowedOrigins is { Length: > 0 })
 {
     app.UseCors();
 }
+
+// After CORS, so a rejected request still carries the CORS headers the browser needs to read the 429.
+app.UseRateLimiter();
 
 app.MapGet("/stats", async (
     HttpRequest request,

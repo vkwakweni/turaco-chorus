@@ -95,6 +95,8 @@ paths:
           description: Consent not granted; no AI provider call made
         "422":
           description: Question can't be answered from available aggregates
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /consent:
     get:
@@ -155,6 +157,18 @@ components:
       description: >
         Authentication missing or invalid; returned before any other port
         is called.
+    TooManyRequests:
+      description: >
+        Rate limit reached for /ask: either this client address has used its
+        per-minute allowance, or all clients together have used the daily
+        allowance. Returned before authentication or any other port is
+        called, so it is not audited. Carries a Retry-After header (seconds)
+        and the body { "error": "Too many requests. Try again later." }.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
 
   schemas:
     DateRange:
