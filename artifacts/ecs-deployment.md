@@ -159,6 +159,8 @@ Found while rotating the real API key into the already-deployed secret (which re
 
 Fixed by setting the `Ec2Service` to stop-then-start instead: `minHealthyPercent: 0`, `maxHealthyPercent: 100`. This means a brief window of real downtime on every deploy (task restarts, service secrets change, etc.) rather than a stuck rollout — an acceptable trade for a single-instance deployment. `AvailabilityZoneRebalancing.ENABLED` (the CDK default) also has to be explicitly set to `DISABLED`, since AWS rejects `maxHealthyPercent <= 100` otherwise — moot anyway for a single-AZ, single-instance service with nothing to rebalance.
 
+Because the old task is already stopped by then, a new task that cannot start would leave the service down, and by default ECS can keep retrying for up to three hours before calling the deployment failed. The service therefore has the ECS deployment circuit breaker on with rollback (`circuitBreaker: { enable: true, rollback: true }`): a rollout that keeps failing is detected quickly and rolled back to the last working task definition, so the service comes back by itself. Added on 2026-10-09 before the first deploy that replaced the task with the proxy-fronted pair of containers.
+
 ## CI-triggered deploy (planned)
 
 Not implemented yet — tracked as a sub-item under Phase 5's buffer in `roadmap.md`. Written up here ahead of doing it so the path is settled before touching live IAM or the pipeline.

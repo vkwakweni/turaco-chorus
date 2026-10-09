@@ -286,6 +286,10 @@ export class TuracoChorusComputeStack extends cdk.Stack {
       // ENABLED (the CDK default) rejects maxHealthyPercent <= 100 outright; nothing to
       // rebalance across anyway with one instance.
       availabilityZoneRebalancing: ecs.AvailabilityZoneRebalancing.DISABLED,
+      // Without this a task that keeps failing to start can hold a deployment open for up to three
+      // hours, and with minHealthyPercent 0 the old task is already stopped, so the service stays down.
+      // With it a failing rollout is detected quickly and rolled back to the last working task.
+      circuitBreaker: { enable: true, rollback: true },
     });
 
     const hostedZone = new route53.PublicHostedZone(this, 'SubdomainHostedZone', {
