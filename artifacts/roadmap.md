@@ -1,6 +1,6 @@
 ---
 title: Development Phases
-last-updated: 2026-08-28
+last-updated: 2026-10-14
 ---
 
 # Development Phases
@@ -127,7 +127,18 @@ Per-port alternatives beyond what's shipped today (Cognito, DynamoDB×3, Claude/
 
 ### Auditing
 
-- The audit log doesn't yet cover every failure path on `/ask`. `AskOrchestrator` only writes an audit entry on the granted, denied, and "AI couldn't answer" outcomes — an unhandled error elsewhere in the flow (e.g. `ILogDataSource` or `IInsightEngine` throwing an infrastructure or parse failure) skips the audit write entirely and falls through to the generic 500 handler, which doesn't audit either. This is currently untested: no test exercises a failure other than `QuestionNotAnsweredException` mid-flow. Worth closing, since `ethics-by-design.md` describes the audit guarantee as holding "regardless of outcome."
+- The audit log doesn't yet cover every failure path on `/ask`. `AskOrchestrator` only writes an audit entry on the granted, denied, and "AI couldn't answer" outcomes — an unhandled error elsewhere in the flow (e.g. `ILogDataSource` or `IInsightEngine` throwing an infrastructure or parse failure) skips the audit write entirely and falls through to the generic 500 handler, which doesn't audit either. This is currently untested: no test exercises a failure other than `QuestionNotAnsweredException` mid-flow. Worth closing, since `ethics-by-design.md` describes the audit guarantee as holding "regardless of outcome." A request refused by the `/ask` rate limiter (`429`) is rejected ahead of authentication and is not audited either.
+
+### Provider reliability and answer quality
+
+Found while turning Logger's World's Wonder page on in production, 2026-10-14.
+
+- No retry on a Gemini `503`: the model answered `503 UNAVAILABLE` ("high demand") on every `/ask` for a while, and the app gives up on the first failure, so a brief blip reaches the visitor as "the answer service hit a snag". A few attempts with a short backoff on `503` and `429` would absorb blips, though not a sustained overload (that one was fixed by switching `Gemini:Model`).
+- Provider failures are not logged: when Gemini or Claude returns an error the container log is empty, so diagnosing it meant calling the provider by hand with the deployed key. Log the status and the provider's message (never the key or the question's contents), and see the audit gap above.
+- A wrong-year date range: with `gemini-3.5-flash-lite` the model sometimes resolves a relative phrase to the wrong year even though the prompt states today's date (on 2026-10-14 "How active was I last week?" was answered for 5 to 11 Oct 2025, while "What did I log last week?" correctly used 5 to 11 Oct 2026). Check the extracted range against today's date in the engine and reject or correct an implausible one, or compute common relative phrases in code instead of asking the model.
+- "I couldn't determine an answer" is shown both when the range is right but holds no entries and when the question asks for entry contents, which are never shared. A reply that says the range had no entries, or that only totals are available, would be clearer.
+- The default `Gemini:Model` (`gemini-3.6-flash`) is a poor default for a public deployment: its free tier allowed only 5 requests a minute and 20 a day, and it returned `503`s. `gemini-3.5-flash-lite` (15 a minute, 500 a day) worked. Limits change, so the model-choice section of the deployment doc should say to check the provider's current limits before setting `GlobalPerDay`.
+- The limiter has per-client and daily settings but no global per-minute one, so several clients at once can still exceed the provider's requests-per-minute and get a `429` from the provider. Whether a global per-minute setting is worth adding depends on the traffic.
 
 ### Testing
 
