@@ -1,6 +1,6 @@
 ---
 title: Environment Setup Log
-last-updated: 2026-08-28
+last-updated: 2026-10-22
 ---
 
 # Environment Setup Log
@@ -44,7 +44,7 @@ With every value above set, the app boots cleanly against real adapters (`ASPNET
 
 One bug surfaced and fixed along the way: `GeminiInsightEngineOptions`'s default `Model` (`gemini-2.5-flash`) had been deprecated by Google for new API keys — updated to `gemini-3.6-flash` (the model Google's own error message recommends), with the README and reader test updated to match.
 
-This was a one-off manual verification, not the automated integration test suite — that's still `roadmap.md`'s next item ("Add adapter-level integration tests against real infrastructure").
+This was a one-off manual verification, not the automated integration test suite — see "Running the integration tests" below for that.
 
 ## Ethics-by-Design verification (consent-denial path)
 
@@ -58,6 +58,32 @@ The run above only exercised `/ask` with consent granted — the denial branch (
 4. Consent restored to `granted: true` afterwards, returning the test user to its prior state.
 
 This confirms, against real adapters rather than fakes, all three properties `roadmap.md` calls out: **consent gating** (the denial short-circuits before the AI provider or log data source are ever called), **no raw-text leakage** (verified directly from the stored DynamoDB item's shape, not just narrated), and **audit completeness** (both the granted and denied paths produce a record in the real table).
+
+## Running the integration tests
+
+Six adapter tests exercise the real AWS, Cognito and AI-provider wire formats. They are tracked in the repo, tagged `[Trait("Category", "Integration")]`, and excluded from a plain `dotnet test` and from CI by each test project's `VSTestTestCaseFilter` (`Category!=Integration`), so nothing runs without credentials. Opt in with:
+
+```
+dotnet test --filter "Category=Integration"
+```
+
+Every real value comes from an environment variable, never from the repo. Set only the variables for the adapters you want to exercise; a test whose required variable is missing fails with a message naming it.
+
+| Test | Required variables | Optional variables |
+|---|---|---|
+| `CognitoIdentityVerifierIntegrationTests` | `TURACO_TEST_COGNITO_REGION`, `TURACO_TEST_COGNITO_USER_POOL_ID`, `TURACO_TEST_COGNITO_APP_CLIENT_ID`, `TURACO_TEST_ACCESS_TOKEN` | `TURACO_TEST_COGNITO_TOKEN_TYPE` (default `AccessToken`) |
+| `DynamoDbLogDataSourceIntegrationTests` | `TURACO_TEST_AWS_REGION`, `TURACO_TEST_DYNAMODB_TABLE_NAME`, `TURACO_TEST_DYNAMODB_PARTITION_KEY_ATTRIBUTE`, `TURACO_TEST_DYNAMODB_PARTITION_KEY_VALUE_TEMPLATE`, `TURACO_TEST_DYNAMODB_DATE_ATTRIBUTE`, `TURACO_TEST_DYNAMODB_SOURCE_ID` | `TURACO_TEST_DYNAMODB_SORT_KEY_ATTRIBUTE`, `TURACO_TEST_DYNAMODB_ENTRY_SORT_KEY_PREFIX` |
+| `DynamoDbConsentStoreIntegrationTests` | `TURACO_TEST_AWS_REGION`, `TURACO_TEST_DYNAMODB_CONSENT_TABLE_NAME` | |
+| `DynamoDbAskAuditLoggerIntegrationTests` | `TURACO_TEST_AWS_REGION`, `TURACO_TEST_DYNAMODB_AUDIT_TABLE_NAME` | |
+| `ClaudeInsightEngineIntegrationTests` | `TURACO_TEST_CLAUDE_API_KEY` | |
+| `GeminiInsightEngineIntegrationTests` | `TURACO_TEST_GEMINI_API_KEY` | |
+
+Notes:
+
+- The Cognito token must be real and unexpired (about an hour), and it is a live bearer credential: never print it or commit it. Mint it with whatever tooling your own app has for the pool.
+- The DynamoDB tests write to the tables you point them at (the consent and audit tests write rows under fixed test user ids; the audit table is append-only, so those rows stay). Point them at a table you are happy to leave a few test rows in.
+- The audit test also checks the `outcome` attribute, including that a `RateLimited` entry has no `consentGranted` attribute.
+- CI deliberately does not run these: they need real tables and a token minted out of band, and the deploy role should not gain table access.
 
 ## Still open
 
