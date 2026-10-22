@@ -30,9 +30,23 @@ public sealed record DataUsed(IReadOnlyList<string> StatsQueried, DateRange Rang
 
 public sealed record Answer(string Text, DataUsed DataUsed);
 
+/// <summary>How an /ask attempt ended. Every attempt that reaches the audit log carries exactly one.</summary>
+public enum AuditOutcome
+{
+    Answered,
+    Denied,
+    CouldNotAnswer,
+    Failed,
+    RateLimited,
+}
+
+/// <param name="ConsentGranted">
+/// Null when consent was never consulted: the request was rate limited, or the consent lookup itself failed.
+/// </param>
 public sealed record AuditEntry(
     string UserId,
     string QueryText,
     AggregateStats? AggregatedDataSent,
-    bool ConsentGranted,
+    bool? ConsentGranted,
+    AuditOutcome Outcome,
     DateTimeOffset Timestamp);

@@ -1,6 +1,6 @@
 ---
 title: Interaction Flows
-last-updated: 2026-08-12
+last-updated: 2026-10-22
 ---
 
 # Interaction Flows
@@ -52,6 +52,10 @@ Consent gate happens before any `IInsightEngine` call — a denial short-circuit
   │                       │                       ├──────────────────────────────── RecordAuditEntryAsync() ─────────────────────────────────────>
   <─────────────────── 200 OK ────────────────────┤                       │                       │                       │                       │
 ```
+
+Failure branch: if `GetConsentAsync`, `ExtractRangeAsync`, `GetStatsAsync` or `AskAsync` (other than a "couldn't answer" result, which is a normal 200) throws, `AskOrchestrator` calls `RecordAuditEntryAsync` with outcome `Failed` — carrying the stats only if they had already been fetched — and then rethrows, so the caller gets the global handler's `500`. A failing audit write on this branch is logged and does not replace the original error.
+
+Rate-limit branch: a request the limiter rejects never reaches the orchestrator. The `429` handler authenticates the caller itself and, only if the credential is valid, writes an entry with outcome `RateLimited` (no consent check, no data) before responding.
 
 ## GET /consent, PUT /consent
 

@@ -7,8 +7,15 @@ public sealed class FakeConsentStore : IConsentStore
 {
     private readonly Dictionary<string, ConsentRecord> _records = new();
 
+    public Exception? GetExceptionToThrow { get; set; }
+
     public Task<ConsentRecord> GetConsentAsync(string userId)
     {
+        if (GetExceptionToThrow is not null)
+        {
+            return Task.FromException<ConsentRecord>(GetExceptionToThrow);
+        }
+
         if (_records.TryGetValue(userId, out var record))
         {
             return Task.FromResult(record);

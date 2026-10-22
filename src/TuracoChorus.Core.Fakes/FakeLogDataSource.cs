@@ -9,12 +9,19 @@ public sealed class FakeLogDataSource : ILogDataSource
 
     public (string SourceId, DateOnly? From, DateOnly? To)? LastRequest { get; private set; }
 
+    public Exception? ExceptionToThrow { get; set; }
+
     public void Seed(string sourceId, AggregateStats stats)
         => _statsBySourceId[sourceId] = stats;
 
     public Task<AggregateStats> GetStatsAsync(string sourceId, DateOnly? from, DateOnly? to)
     {
         LastRequest = (sourceId, from, to);
+        if (ExceptionToThrow is not null)
+        {
+            return Task.FromException<AggregateStats>(ExceptionToThrow);
+        }
+
         return _statsBySourceId.TryGetValue(sourceId, out var stats)
             ? Task.FromResult(stats)
             : throw new InvalidOperationException($"No stats seeded for source '{sourceId}'.");

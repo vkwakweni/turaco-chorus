@@ -14,11 +14,14 @@ public sealed class FakeInsightEngine : IInsightEngine
     public int ExtractRangeCallCount { get; private set; }
     public int AskCallCount { get; private set; }
     public Exception? AskExceptionToThrow { get; set; }
+    public Exception? ExtractRangeExceptionToThrow { get; set; }
 
     public Task<RequestedRange> ExtractRangeAsync(string question)
     {
         ExtractRangeCallCount++;
-        return Task.FromResult(RangeToReturn);
+        return ExtractRangeExceptionToThrow is not null
+            ? Task.FromException<RequestedRange>(ExtractRangeExceptionToThrow)
+            : Task.FromResult(RangeToReturn);
     }
 
     public Task<Answer> AskAsync(AggregateStats stats, string question)

@@ -1,6 +1,6 @@
 ---
 title: Domain Interfaces and Objects
-last-updated: 2026-09-06
+last-updated: 2026-10-22
 ---
 
 # Domain Interfaces and Objects
@@ -125,9 +125,12 @@ AuditEntry
 ├── userId: string
 ├── queryText: string
 ├── aggregatedDataSent: AggregateStats | null
-├── consentGranted: bool
+├── consentGranted: bool | null
+├── outcome: Answered | Denied | CouldNotAnswer | Failed | RateLimited
 └── timestamp: datetime
 ```
+
+`aggregatedDataSent` is null whenever nothing reached the AI provider (denied, rate limited, or a failure before stats were fetched). `consentGranted` is null when consent was never consulted: a rate-limited request, or a failure in the consent lookup itself. `Failed` entries are written by `AskOrchestrator` just before it rethrows the original exception; if that audit write itself fails, the failure is logged and the original exception still propagates.
 
 `AggregateStats.sourceId` is deliberately named `sourceId`, not `userId` — it identifies whatever the data source's own concept of "owner" is, which the `ILogDataSource` adapter resolves from the `userId` `/stats` and `/ask` receive. The domain doesn't assume those two ids are always the same value; resolving one from the other, if needed at all, is the adapter's job.
 

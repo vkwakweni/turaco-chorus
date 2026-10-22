@@ -1,6 +1,6 @@
 ---
 title: DynamoDB Adapter Configuration
-last-updated: 2026-09-06
+last-updated: 2026-10-22
 ---
 
 # DynamoDB Adapter Configuration
@@ -102,8 +102,11 @@ Own table, construct id `TuracoChorusAskAudit`. Append-only; one row per `/ask` 
 PK  userId               (S)
 SK  timestamp            (S, ISO-8601, millisecond precision)
     queryText            (S)
-    consentGranted       (BOOL)
+    outcome              (S: Answered | Denied | CouldNotAnswer | Failed | RateLimited)
+    consentGranted       (BOOL; omitted when consent was never consulted)
     aggregatedDataSent   (M, nested `AggregateStats`; omitted when null)
 ```
+
+Rows written before `outcome` existed have no such attribute; nothing in the service reads this table, so they need no migration.
 
 Known, low-probability limitation on this sort key (a same-millisecond collision between two `/ask` calls from the same user) — see `roadmap.md`'s "Later / Further Development § Known limitations".

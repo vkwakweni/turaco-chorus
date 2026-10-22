@@ -14,9 +14,13 @@ public static class DynamoDbAuditItemMapper
     public const string TimestampAttribute = "timestamp";
     public const string QueryTextAttribute = "queryText";
     public const string ConsentGrantedAttribute = "consentGranted";
+    public const string OutcomeAttribute = "outcome";
     public const string AggregatedDataSentAttribute = "aggregatedDataSent";
 
-    /// <summary>aggregatedDataSent is omitted entirely when AggregatedDataSent is null (the consent-denied path).</summary>
+    /// <summary>
+    /// aggregatedDataSent is omitted entirely when AggregatedDataSent is null (nothing reached the AI provider),
+    /// and consentGranted is omitted when ConsentGranted is null (consent was never consulted).
+    /// </summary>
     public static Dictionary<string, AttributeValue> ToPutItem(AuditEntry entry)
     {
         var item = new Dictionary<string, AttributeValue>
@@ -24,8 +28,13 @@ public static class DynamoDbAuditItemMapper
             [UserIdAttribute] = new AttributeValue { S = entry.UserId },
             [TimestampAttribute] = new AttributeValue { S = entry.Timestamp.ToString("O") },
             [QueryTextAttribute] = new AttributeValue { S = entry.QueryText },
-            [ConsentGrantedAttribute] = new AttributeValue { BOOL = entry.ConsentGranted },
+            [OutcomeAttribute] = new AttributeValue { S = entry.Outcome.ToString() },
         };
+
+        if (entry.ConsentGranted is { } consentGranted)
+        {
+            item[ConsentGrantedAttribute] = new AttributeValue { BOOL = consentGranted };
+        }
 
         if (entry.AggregatedDataSent is { } stats)
         {
