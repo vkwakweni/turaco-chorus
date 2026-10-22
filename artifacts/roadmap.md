@@ -1,6 +1,6 @@
 ---
 title: Development Phases
-last-updated: 2026-10-14
+last-updated: 2026-10-22
 ---
 
 # Development Phases
@@ -123,11 +123,10 @@ Per-port alternatives beyond what's shipped today (Cognito, DynamoDB×3, Claude/
 
 ### Known limitations
 
+- **Rate-limited requests are audited without de-duplication.** Each `429` for a caller with a valid credential writes one `RateLimited` row, bounded only by the per-address limit (default 10 a minute per address). A holder of a valid token can turn rejected traffic into audit-table writes and cost, and several addresses multiply it. Accepted for now so the audit stays complete. If it shows up in practice, options are one row per user per window, or a counter row instead of a row per rejection. Unauthenticated rejections write nothing, so an anonymous flood does not reach the table.
+
 - `TuracoChorusAskAudit`'s sort key is a millisecond-precision ISO-8601 timestamp, scoped per-user (partition key `userId`). Two `/ask` calls from the *same* user finishing in the same millisecond would collide and silently overwrite one audit entry — practically negligible given each request crosses two LLM round trips before reaching the audit write, but not mathematically impossible (e.g. a double-submit or client retry). A uniqueness suffix on the sort key would close this off completely if it's ever worth the added complexity
 
-### Auditing
-
-- The audit log doesn't yet cover every failure path on `/ask`. `AskOrchestrator` only writes an audit entry on the granted, denied, and "AI couldn't answer" outcomes — an unhandled error elsewhere in the flow (e.g. `ILogDataSource` or `IInsightEngine` throwing an infrastructure or parse failure) skips the audit write entirely and falls through to the generic 500 handler, which doesn't audit either. This is currently untested: no test exercises a failure other than `QuestionNotAnsweredException` mid-flow. Worth closing, since `ethics-by-design.md` describes the audit guarantee as holding "regardless of outcome." A request refused by the `/ask` rate limiter (`429`) is rejected ahead of authentication and is not audited either.
 
 ### Provider reliability and answer quality
 
@@ -149,5 +148,7 @@ Found while turning Logger's World's Wonder page on in production, 2026-10-14.
 - Replace the ASCII diagrams in `README.md` and `interaction-flows.md` with `.drawio` files, matching Logger's World's `architecture.drawio` convention — not required for the current design-doc pass
 
 ### Resolved
+
+- ~~The audit log doesn't cover every failure path on `/ask`~~ — resolved 2026-10-22: every `AuditEntry` now carries an `outcome` (`Answered`, `Denied`, `CouldNotAnswer`, `Failed`, `RateLimited`), `AskOrchestrator` records a `Failed` entry before rethrowing any unhandled error (stats attached only if already fetched), and a `429` is audited when the caller has a valid credential. See `ethics-by-design.md`'s accountability requirements.
 
 - ~~`ConsentRecord.GrantedAt` is `null` whenever `Granted` is `false`~~ — resolved while implementing `DynamoDbConsentStore`/`FakeConsentStore`: `GrantedAt` is now populated on every status change, granted or revoked, so it reads as "date of the last decision" and `null` means only "never decided"

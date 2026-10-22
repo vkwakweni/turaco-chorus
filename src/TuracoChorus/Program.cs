@@ -47,12 +47,18 @@ if (trustForwardedHeaders)
     });
 }
 
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<AskRateLimitAuditor>();
+
 // /ask is the one route that spends on the AI provider; see AskRateLimitOptions for the two limits.
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = AskRateLimiting.Create(AskRateLimitOptionsReader.Read(builder.Configuration));
     options.OnRejected = async (context, cancellationToken) =>
     {
+        await context.HttpContext.RequestServices.GetRequiredService<AskRateLimitAuditor>()
+            .RecordAsync(context.HttpContext, cancellationToken);
+
         var response = context.HttpContext.Response;
         response.StatusCode = StatusCodes.Status429TooManyRequests;
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))

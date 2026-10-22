@@ -1,6 +1,6 @@
 ---
 title: Ethics by Design
-last-updated: 2026-08-13
+last-updated: 2026-10-22
 ---
 
 # Ethics by Design
@@ -61,6 +61,9 @@ The following document describes a translation of EbD's abstract tracts into imp
 
 **Design requirements:**
 - `IAuditLogger.RecordAuditEntryAsync` is called once per `/ask` request, regardless of outcome — including consent denials — so there is a complete record of every attempt to use the AI feature, not just successful ones (`domain-interfaces-and-objects.md`, `interaction-flows.md`).
+- Every entry carries an `outcome`: `Answered`, `Denied`, `CouldNotAnswer`, `Failed` (consent was checked or granted, but a collaborator threw — the original error still reaches the caller as a 500) or `RateLimited` (rejected by the limiter before the orchestrator ran). `aggregatedDataSent` is filled only when stats were fetched before the attempt ended, so a failed entry says exactly what had, or had not, been sent to the AI provider. `consentGranted` is absent when consent was never consulted (`RateLimited`, or the consent lookup itself failed).
+- A failure to write the audit entry on a failed request is logged and never replaces the error that ended the request. On the success and denial paths a failed audit write still fails the request, since an unaudited answer must not be returned.
+- A rate-limited request is audited only when it carries a valid credential: the limiter runs before authentication, so an unauthenticated rejection has no user to attribute it to, and nothing could have been sent to the provider. **Known risk:** there is no de-duplication, so each rejected request from a valid caller writes one audit row, bounded only by the per-address limit. A caller with a valid token can therefore turn rejected traffic into audit-table writes (and cost). Accepted for now; revisit if abuse shows up.
 - Audit records are append-only and survive consent revocation (see Privacy, above) — human oversight requires the historical record to be tamper-resistant, not editable after the fact.
 - The audit log must be human-readable, not just machine-parseable, so a human reviewer (not just another system) can audit what happened — this is a concrete constraint on the schema design in the next roadmap item.
 - No component in this system is unowned: `ILogDataSource`, `IInsightEngine`, `IConsentStore`, and `IAuditLogger` are each a single, well-defined port with a single adapter responsible for it — accountability for a failure in any one of them traces to exactly one place.
